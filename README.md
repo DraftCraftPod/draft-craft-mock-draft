@@ -43,10 +43,9 @@ Live data on the website:
   the order through the 2027 draft; records stop after the regular season.
 - The page re-checks the files every 15 minutes while open.
 
-Files are served from GitHub: the JS/CSS through jsDelivr's CDN, the JSON straight from the repo.
-After changing the app, run the build and push; jsDelivr can take up to 12 hours to pick up a new
-`@main` version unless you purge it at `https://purge.jsdelivr.net/gh/draftcraftpod/draft-craft-mock-draft@main/dist/mock-draft.js`
-(and the same for `.css`).
+Everything is served by GitHub Pages from this repo, at https://draftcraftpod.github.io/draft-craft-mock-draft/
+(`dist/` for the app, `live/` for the data). After changing the app, run the build and push; Pages republishes in
+about a minute, and browsers may hold the old copy for up to 10 minutes.
 
 ### One-time setup
 
