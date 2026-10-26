@@ -10,9 +10,10 @@ The page reads two documents from its own data store, collection `standings`:
 - `order`: Tankathon's projected 2027 draft order, all 7 rounds with traded picks
 - `current`: ESPN team records
 
-The scheduled task "Draft Craft mock draft: refresh order and records" updates both every day at about 8 AM
-while the Claude app is open, and stops after the regular season ends (Jan 13, 2027).
-The page also contains a snapshot of both from Oct 24, 2026, used when the live copy can't be read.
+The scheduled task "Draft Craft mock draft: refresh order and records" used to update both from this Mac; it is
+turned off (Oct 26, 2026) because the website's GitHub job is the main refresh now. The claude.ai copy only changes
+when someone copies `live/*.json` into its data store. The page also contains a snapshot of both from Oct 24, 2026,
+used when the live copy can't be read.
 
 ## data/
 
