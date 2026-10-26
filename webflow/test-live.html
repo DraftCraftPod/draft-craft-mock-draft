@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- Live test: the exact Webflow embed (loads from GitHub/jsDelivr) inside a mimic of a Webflow page.
+     Original note: mimics a Webflow page (Webflow's default tag styles, a fixed nav, site fonts) around the embed.
+     Serve the project folder and open /webflow/test-page.html. Uses the local dist/ and live/ files. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock Draft | Draft Craft (live test)</title>
+<style>
+  /* A subset of Webflow's base stylesheet, the rules most likely to leak into an embed */
+  body { margin: 0; min-height: 100%; background: #0c0b0e; color: #f2eeea; font-family: Arial, sans-serif; font-size: 14px; line-height: 20px; }
+  h1, h2, h3 { font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
+  h1 { font-size: 38px; line-height: 44px; } h2 { font-size: 32px; line-height: 36px; } h3 { font-size: 24px; line-height: 30px; }
+  p { margin-top: 0; margin-bottom: 10px; }
+  label { display: block; margin-bottom: 5px; font-weight: bold; }
+  img { max-width: 100%; vertical-align: middle; display: inline-block; }
+  a { color: #3898ec; text-decoration: underline; }
+  .nav { position: sticky; top: 0; z-index: 1000; height: 64px; display: flex; align-items: center; padding: 0 24px; background: #111; border-bottom: 1px solid #333; font-weight: bold; }
+  .section { max-width: 1280px; margin: 0 auto; padding: 24px 16px 64px; }
+</style>
+</head>
+<body>
+  <div class="nav">DRAFT CRAFT · Episodes · Big Board · Mock Draft</div>
+  <div class="section">
+    <h1>Webflow page heading</h1>
+<!-- Draft Craft Mock Draft Simulator: paste into a Code Embed element on the /mock-draft page. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/draftcraftpod/draft-craft-mock-draft@main/dist/mock-draft.css">
+<div id="dc-md" data-live="https://raw.githubusercontent.com/draftcraftpod/draft-craft-mock-draft/main/live/"></div>
+<script src="https://cdn.jsdelivr.net/gh/draftcraftpod/draft-craft-mock-draft@main/dist/mock-draft.js" defer></script>
+  </div>
+</body>
+</html>
