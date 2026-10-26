@@ -176,6 +176,7 @@ details.values summary { cursor: pointer; font-weight: 500; }
 .verdict { font-weight: 600; }
 .toast { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: var(--radius); z-index: 30; font-weight: 600; max-width: calc(100% - 32px); }
 .note { font-size: 12px; color: var(--muted); }
+.note.hint { margin-top: 2px; }
 
 @media (max-width: 860px) {
   .room { grid-template-columns: 1fr; }
@@ -892,10 +893,10 @@ function renderRoom() {
       ${S.futures ? futureTrayHtml() : ""}
     </section>
     <section class="panel">
-      <div class="panel-head"><h3>Available prospects</h3><input class="search" id="q" type="search" placeholder="Search name or school" value="${esc(S.query)}"></div>
+      <div class="panel-head"><div><h3>Available prospects</h3><div class="note hint">Tap several positions to filter them together.</div></div><input class="search" id="q" type="search" placeholder="Search name or school" value="${esc(S.query)}"></div>
       <div class="filters">${["ALL", ...POSITIONS.filter(p => PLAYERS.some(x => x.pos === p))].map(p => `<button class="chip" data-pos="${p}" aria-pressed="${p === "ALL" ? !S.posFilter.size : S.posFilter.has(p)}">${p === "ALL" ? "All" : p}</button>`).join("")}</div>
       <div class="scroll" id="prospScroll">${prospectsHtml(pk, mine)}</div>
-      <div class="note" style="padding:8px 12px;border-top:1px solid var(--line)">${esc(boardSource)}. Click a row for the profile. Tap several positions to filter them together.</div>
+      <div class="note" style="padding:8px 12px;border-top:1px solid var(--line)">${esc(boardSource)}. Click a row for the profile.</div>
     </section>
   </div>`;
   bindRoom();

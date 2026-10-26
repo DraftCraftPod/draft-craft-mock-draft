@@ -699,10 +699,10 @@ function renderRoom() {
       ${S.futures ? futureTrayHtml() : ""}
     </section>
     <section class="panel">
-      <div class="panel-head"><h3>Available prospects</h3><input class="search" id="q" type="search" placeholder="Search name or school" value="${esc(S.query)}"></div>
+      <div class="panel-head"><div><h3>Available prospects</h3><div class="note hint">Tap several positions to filter them together.</div></div><input class="search" id="q" type="search" placeholder="Search name or school" value="${esc(S.query)}"></div>
       <div class="filters">${["ALL", ...POSITIONS.filter(p => PLAYERS.some(x => x.pos === p))].map(p => `<button class="chip" data-pos="${p}" aria-pressed="${p === "ALL" ? !S.posFilter.size : S.posFilter.has(p)}">${p === "ALL" ? "All" : p}</button>`).join("")}</div>
       <div class="scroll" id="prospScroll">${prospectsHtml(pk, mine)}</div>
-      <div class="note" style="padding:8px 12px;border-top:1px solid var(--line)">${esc(boardSource)}. Click a row for the profile. Tap several positions to filter them together.</div>
+      <div class="note" style="padding:8px 12px;border-top:1px solid var(--line)">${esc(boardSource)}. Click a row for the profile.</div>
     </section>
   </div>`;
   bindRoom();
