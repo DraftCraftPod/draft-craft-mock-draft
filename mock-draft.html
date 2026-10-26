@@ -177,6 +177,11 @@ details.values summary { cursor: pointer; font-weight: 500; }
 .toast { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: var(--radius); z-index: 30; font-weight: 600; max-width: calc(100% - 32px); }
 .note { font-size: 12px; color: var(--muted); }
 .note.hint { margin-top: 2px; }
+.offers { margin-top: 10px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--field); border-radius: var(--radius); }
+.offer { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.offers .label + .offer { margin-top: 8px; }
+.offer .pkg { font-size: 13px; color: var(--ink); margin-top: 2px; }
+.offer .acts { display: flex; gap: 6px; }
 
 @media (max-width: 860px) {
   .room { grid-template-columns: 1fr; }
@@ -185,6 +190,8 @@ details.values summary { cursor: pointer; font-weight: 500; }
   .clock .needs-wrap { grid-column: 1 / -1; }
   .trade-cols { grid-template-columns: 1fr; }
   .facts { grid-template-columns: repeat(2, 1fr); }
+  .offer { grid-template-columns: auto minmax(0, 1fr); }
+  .offer .acts { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -724,7 +731,7 @@ const PRIORITY = { balanced: { need: 5, noise: 4, label: "Balanced" }, bpa: { ne
 const DEFAULT_SOURCE = `Consensus big board, ${BOARD.length} prospects`;
 let PLAYERS = defaultPlayers();
 let boardSource = DEFAULT_SOURCE;
-const S = { phase: "setup", user: new Set(), priority: "balanced", speed: "fast", rounds: 3, chart: "consensus", futures: true,
+const S = { phase: "setup", user: new Set(), priority: "balanced", speed: "fast", rounds: 3, chart: "consensus", futures: true, cpuOffers: true,
   picks: [], future: [], running: false, posFilter: new Set(), query: "", boardView: "all", trades: [] };
 let timer = null;
 
@@ -769,6 +776,9 @@ const openNeeds = abbr => { const d = draftedPositions(abbr); return NEEDS[abbr]
 
 /* ===================== CPU LOGIC ===================== */
 function cpuChoose(pk) {
+  // A team that traded up for a specific prospect takes him if he's still there
+  const wanted = S.cpuTargets && S.cpuTargets[pk.no] && byId(S.cpuTargets[pk.no]);
+  if (wanted && !takenIds().has(wanted.id)) return wanted;
   const w = PRIORITY[S.priority], needs = openNeeds(pk.owner), drafted = draftedPositions(pk.owner);
   let best = null, bestScore = -Infinity;
   for (const p of available().slice(0, 45)) {
@@ -793,6 +803,103 @@ function tick() {
   if (!pk) { S.running = false; S.phase = "done"; renderRoom(); return; }
   if (isUser(pk)) { S.running = false; renderRoom(); toast(`You're on the clock: ${team(pk.owner)} at #${pk.no}`); return; }
   timer = setTimeout(() => { makePick(cpuChoose(pk), "cpu"); tick(); }, SPEEDS[S.speed]);
+}
+
+/* ===================== CPU TRADE OFFERS ===================== */
+// Each mock aims for 3–5 "offer moments" spread at random over the user's picks; each brings 1–3 CPU teams
+// that want to move up for a prospect who likely won't last to their own pick.
+// Packages land between 100% and 112% of the user's pick value on the selected chart.
+const OFFER_RANGE = [1.0, 1.12];
+function initOffers() { S.offerEvents = 3 + Math.floor(Math.random() * 3); S.offersFor = {}; S.cpuTargets = {}; }
+function maybeOffers(pk) {
+  if (!S.cpuOffers || pk.no in S.offersFor) return;
+  S.offersFor[pk.no] = [];
+  const left = S.picks.filter(p => !p.player && isUser(p)).length;
+  if (S.offerEvents <= 0 || Math.random() >= S.offerEvents / Math.max(1, left)) return;
+  const offers = buildOffers(pk);
+  if (offers.length) { S.offerEvents--; S.offersFor[pk.no] = offers; }
+}
+// The prospect a team would most like right now (board rank plus its needs, no randomness)
+function teamTarget(abbr) {
+  const needs = openNeeds(abbr), drafted = draftedPositions(abbr), w = PRIORITY[S.priority];
+  let best = null, bestScore = -Infinity;
+  for (const p of available().slice(0, 25)) {
+    if (p.pos === "K" || p.pos === "P") continue;
+    const i = needs.indexOf(p.pos);
+    const sc = -p.rank + (i >= 0 ? (5 - i) * w.need * 0.6 : 0) - (drafted.includes(p.pos) ? 8 : 0);
+    if (sc > bestScore) { bestScore = sc; best = p; }
+  }
+  return best;
+}
+function buildOffers(pk) {
+  const userVal = pickValue(pk.no), seen = new Set(), cands = [];
+  for (const p of S.picks) {
+    if (p.player || p.no <= pk.no || isUser(p) || seen.has(p.owner)) continue;
+    seen.add(p.owner);                       // p is this team's next pick after the user's
+    if (p.no - pk.no > 40) continue;         // only teams within about a round
+    const target = teamTarget(p.owner);
+    if (!target || p.no - target.rank < 4) continue;  // he'd probably still be there at their pick
+    const fits = openNeeds(p.owner).includes(target.pos);
+    cands.push({ team: p.owner, target, desire: (p.no - target.rank) + (fits ? 10 : 0) + Math.random() * 8 });
+  }
+  cands.sort((a, b) => b.desire - a.desire);
+  const want = [1, 1, 1, 2, 2, 3][Math.floor(Math.random() * 6)];
+  const offers = [];
+  for (const c of cands.slice(0, 6)) {
+    if (offers.length >= want) break;
+    const pkg = buildPackage(c.team, userVal, pk.no + 40);
+    if (pkg) offers.push({ team: c.team, target: c.target.id, give: pkg.keys, value: pkg.value, userVal });
+  }
+  return offers;
+}
+// Search every combination of up to four of the team's picks (always including one near the user's pick) for packages
+// inside OFFER_RANGE; prefer fewer picks, then the total closest to the user's pick, with a little randomness
+function buildPackage(abbr, userVal, windowEnd) {
+  const lo = userVal * OFFER_RANGE[0], hi = userVal * OFFER_RANGE[1];
+  const assets = [
+    ...S.picks.filter(p => p.owner === abbr && !p.player && p.no > current().no).map(p => ({ k: "P-" + p.no, near: p.no <= windowEnd })),
+    ...(S.futures ? S.future.filter(f => f.owner === abbr && f.year <= 2029 && f.round <= 4).map(f => ({ k: f.key, near: false })) : []),
+  ].map(x => ({ ...x, v: assetValue(x.k) })).filter(x => x.v < hi);
+  const found = [];
+  const walk = (start, chosen, total) => {
+    if (chosen.length && total >= lo && chosen.some(x => x.near)) found.push({ keys: chosen.map(x => x.k), value: total });
+    if (chosen.length === 4) return;
+    for (let i = start; i < assets.length; i++) if (total + assets[i].v <= hi) walk(i + 1, [...chosen, assets[i]], total + assets[i].v);
+  };
+  walk(0, [], 0);
+  if (!found.length) return null;
+  found.sort((x, y) => x.keys.length - y.keys.length || x.value - y.value);
+  const best = found.filter(f => f.keys.length === found[0].keys.length).slice(0, 3);
+  const pkg = best[Math.floor(Math.random() * best.length)];
+  pkg.keys.sort((x, y) => assetValue(y) - assetValue(x));
+  return pkg;
+}
+function offersHtml(pk) {
+  const list = S.offersFor[pk.no] || [];
+  if (!list.length) return "";
+  return `<section class="offers"><div class="label">${list.length > 1 ? `${list.length} teams want` : "A team wants"} to trade up to #${pk.no}</div>
+    ${list.map((o, i) => { const tg = byId(o.target), pct = Math.round((o.value / o.userVal - 1) * 100);
+      return `<div class="offer">${badge(o.team)}
+        <div style="min-width:0"><div><b>${team(o.team)}</b> want to move up${tg ? ` for <b>${esc(tg.name)}</b> <span class="pos">${tg.pos}</span>` : ""}</div>
+        <div class="pkg">They send ${o.give.map(k => assetLabel(k)).join(" + ")}</div>
+        <div class="note num">${o.value} pts for your ${o.userVal} (${pct >= 0 ? "+" : ""}${pct}%)</div></div>
+        <div class="acts"><button class="btn primary sm" data-accept="${i}">Accept</button><button class="btn sm" data-decline="${i}">Decline</button></div></div>`; }).join("")}
+  </section>`;
+}
+function acceptOffer(i) {
+  const pk = current(), o = (S.offersFor[pk.no] || [])[i];
+  if (!o || !isUser(pk)) return;
+  if (!o.give.every(k => { const a = assetOf(k); return a && a.owner === o.team && !a.player; })) {
+    S.offersFor[pk.no].splice(i, 1); renderRoom(); toast("That offer is no longer available."); return;
+  }
+  const me = pk.owner, sent = [assetLabel("P-" + pk.no, true)], got = o.give.map(k => assetLabel(k, true));
+  o.give.forEach(k => assetOf(k).owner = me);
+  pk.owner = o.team;
+  S.cpuTargets[pk.no] = o.target;
+  S.trades.push({ team: me, partner: o.team, sent, got });
+  S.offersFor[pk.no] = [];
+  toast(`Trade done: ${team(o.team)} move up to #${pk.no}. You get ${got.join(", ")}`);
+  S.running = true; renderRoom(); tick();
 }
 
 /* ===================== SETUP VIEW ===================== */
@@ -823,6 +930,7 @@ function renderSetup() {
     <label class="field"><span class="label">Trade value chart</span>
       <select id="o-chart">${Object.entries(CHARTS).map(([k, v]) => `<option value="${k}" ${S.chart === k ? "selected" : ""}>${v.name}</option>`).join("")}</select></label>
     <label class="field check"><input type="checkbox" id="o-futures" ${S.futures ? "checked" : ""}><span>Allow trading future picks (${FUTURE_YEARS[0]}–${FUTURE_YEARS.at(-1)})</span></label>
+    <label class="field check"><input type="checkbox" id="o-offers" ${S.cpuOffers ? "checked" : ""}><span>CPU teams can offer trades for your picks</span></label>
     <div class="enter"><button class="btn primary" id="enter" ${S.user.size ? "" : "disabled"}>Enter draft room</button>
       <small>${S.user.size ? `${S.user.size} team${S.user.size > 1 ? "s" : ""} selected` : "Select at least one team"}</small></div>
   </div>
@@ -839,6 +947,7 @@ function renderSetup() {
   app.querySelector("#o-rounds").onchange = e => S.rounds = +e.target.value;
   app.querySelector("#o-chart").onchange = e => S.chart = e.target.value;
   app.querySelector("#o-futures").onchange = e => S.futures = e.target.checked;
+  app.querySelector("#o-offers").onchange = e => S.cpuOffers = e.target.checked;
   app.querySelector("#enter").onclick = startRoom;
   app.querySelector("#load").onclick = loadCsv;
   app.querySelector("#sample").onclick = () => { PLAYERS = defaultPlayers(); boardSource = DEFAULT_SOURCE; renderSetup(); toast("Consensus board restored"); };
@@ -857,13 +966,14 @@ function loadCsv() {
   renderSetup(); toast(`Loaded ${out.length} prospects${bad.length ? `, skipped ${bad.length} lines` : ""}`);
 }
 function startRoom() {
-  S.picks = buildPicks(S.rounds); S.future = buildFuture(); S.phase = "draft"; S.running = false; S.trades = []; S.posFilter = new Set(); S.query = "";
+  S.picks = buildPicks(S.rounds); S.future = buildFuture(); S.phase = "draft"; S.running = false; S.trades = []; S.posFilter = new Set(); S.query = ""; initOffers();
   renderRoom(); window.scrollTo(0, 0);
 }
 
 /* ===================== DRAFT ROOM ===================== */
 function renderRoom() {
   const pk = current(), mine = isUser(pk);
+  if (mine && !S.running && S.phase === "draft") maybeOffers(pk);
   const scrollEl = app.querySelector("#boardScroll"), prospEl = app.querySelector("#prospScroll");
   const keepProsp = prospEl ? prospEl.scrollTop : 0;
   const userPicks = S.picks.filter(p => S.user.has(p.owner));
@@ -874,6 +984,7 @@ function renderRoom() {
       <div class="who">${badge(pk.owner, "lg")}<div><div class="label">${mine ? "You're on the clock" : "On the clock"} · Round ${pk.round}</div><h2>${team(pk.owner)}</h2>${pk.owner !== pk.orig ? `<div class="note">via ${pk.orig}</div>` : ""}</div></div>
       <div class="needs-wrap"><div class="label" style="margin-bottom:4px">Top needs</div><div class="needs">${NEEDS[pk.owner].map(n => `<span class="pos ${draftedPositions(pk.owner).includes(n) ? "filled" : ""}">${n}</span>`).join("")}</div></div>
     </section>` : ""}
+  ${pk && mine && !S.running ? offersHtml(pk) : ""}
   <div class="controls">
     ${pk ? `<button class="btn primary" id="run" ${mine ? "disabled" : ""}>${S.running ? "Pause" : "Sim to my pick"}</button>
     <button class="btn" id="next" ${mine || S.running ? "disabled" : ""}>Simulate next pick</button>
@@ -952,6 +1063,8 @@ function bindRoom() {
     renderRoom();
   });
   $("#copy") && ($("#copy").onclick = copyResults);
+  app.querySelectorAll("[data-accept]").forEach(b => b.onclick = () => acceptOffer(+b.dataset.accept));
+  app.querySelectorAll("[data-decline]").forEach(b => b.onclick = () => { S.offersFor[current().no].splice(+b.dataset.decline, 1); renderRoom(); });
   $("#again") && ($("#again").onclick = () => { startRoom(); });
   bindRows();
 }
