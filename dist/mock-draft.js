@@ -531,7 +531,7 @@ const DEFAULT_SOURCE = `Consensus big board, ${BOARD.length} prospects`;
 let PLAYERS = defaultPlayers();
 let boardSource = DEFAULT_SOURCE;
 const S = { phase: "setup", user: new Set(), priority: "balanced", speed: "fast", rounds: 3, chart: "consensus", futures: true,
-  picks: [], future: [], running: false, posFilter: "ALL", query: "", boardView: "all", trades: [] };
+  picks: [], future: [], running: false, posFilter: new Set(), query: "", boardView: "all", trades: [] };
 let timer = null;
 
 const byId = id => PLAYERS.find(p => p.id === id);
@@ -663,7 +663,7 @@ function loadCsv() {
   renderSetup(); toast(`Loaded ${out.length} prospects${bad.length ? `, skipped ${bad.length} lines` : ""}`);
 }
 function startRoom() {
-  S.picks = buildPicks(S.rounds); S.future = buildFuture(); S.phase = "draft"; S.running = false; S.trades = []; S.posFilter = "ALL"; S.query = "";
+  S.picks = buildPicks(S.rounds); S.future = buildFuture(); S.phase = "draft"; S.running = false; S.trades = []; S.posFilter = new Set(); S.query = "";
   renderRoom(); root.scrollIntoView({ block: "start" });
 }
 
@@ -700,9 +700,9 @@ function renderRoom() {
     </section>
     <section class="panel">
       <div class="panel-head"><h3>Available prospects</h3><input class="search" id="q" type="search" placeholder="Search name or school" value="${esc(S.query)}"></div>
-      <div class="filters">${["ALL", ...POSITIONS.filter(p => PLAYERS.some(x => x.pos === p))].map(p => `<button class="chip" data-pos="${p}" aria-pressed="${S.posFilter === p}">${p === "ALL" ? "All" : p}</button>`).join("")}</div>
+      <div class="filters">${["ALL", ...POSITIONS.filter(p => PLAYERS.some(x => x.pos === p))].map(p => `<button class="chip" data-pos="${p}" aria-pressed="${p === "ALL" ? !S.posFilter.size : S.posFilter.has(p)}">${p === "ALL" ? "All" : p}</button>`).join("")}</div>
       <div class="scroll" id="prospScroll">${prospectsHtml(pk, mine)}</div>
-      <div class="note" style="padding:8px 12px;border-top:1px solid var(--line)">${esc(boardSource)}. Click a row for the profile.</div>
+      <div class="note" style="padding:8px 12px;border-top:1px solid var(--line)">${esc(boardSource)}. Click a row for the profile. Tap several positions to filter them together.</div>
     </section>
   </div>`;
   bindRoom();
@@ -727,7 +727,7 @@ function boardHtml() {
 }
 function prospectsHtml(pk, mine) {
   const q = S.query.toLowerCase(), needs = pk ? openNeeds(pk.owner) : [];
-  const rows = available().filter(p => (S.posFilter === "ALL" || p.pos === S.posFilter) && (!q || (p.name + " " + p.school).toLowerCase().includes(q)));
+  const rows = available().filter(p => (!S.posFilter.size || S.posFilter.has(p.pos)) && (!q || (p.name + " " + p.school).toLowerCase().includes(q)));
   if (!rows.length) return `<p class="note" style="padding:12px">No prospects match.</p>`;
   return `<table class="board"><thead><tr><th class="label">Rank</th><th class="label">Prospect</th><th></th></tr></thead><tbody>
     ${rows.slice(0, 150).map(p => `<tr class="p" data-id="${p.id}">
@@ -747,7 +747,16 @@ function bindRoom() {
   $("#spd").onchange = e => { S.speed = e.target.value; };
   $("#bview").onchange = e => { S.boardView = e.target.value; renderRoom(); };
   $("#q").oninput = e => { S.query = e.target.value; app.querySelector("#prospScroll").innerHTML = prospectsHtml(current(), isUser(current())); bindRows(); };
-  app.querySelectorAll(".chip").forEach(c => c.onclick = () => { S.posFilter = c.dataset.pos; renderRoom(); });
+  // Position chips: tap to add a position; tap a highlighted one to filter by just that position
+  // (or, if it's already the only one, to clear back to All)
+  app.querySelectorAll(".chip").forEach(c => c.onclick = () => {
+    const pos = c.dataset.pos, f = S.posFilter;
+    if (pos === "ALL") f.clear();
+    else if (!f.has(pos)) f.add(pos);
+    else if (f.size > 1) { f.clear(); f.add(pos); }
+    else f.clear();
+    renderRoom();
+  });
   $("#copy") && ($("#copy").onclick = copyResults);
   $("#again") && ($("#again").onclick = () => { startRoom(); });
   bindRows();
