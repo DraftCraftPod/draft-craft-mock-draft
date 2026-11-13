@@ -103,6 +103,10 @@
 #dc-md table.board td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 #dc-md table.board tr.p:hover td { background: var(--surface-2); cursor: pointer; }
 #dc-md table.board td.rk { font: 600 14px var(--mono); color: var(--muted); width: 48px; }
+#dc-md table.board td.prk { font: 500 13px var(--mono); color: var(--field); width: 64px; white-space: nowrap; }
+#dc-md .sort-btn { all: unset; white-space: nowrap; cursor: pointer; font: inherit; letter-spacing: inherit; text-transform: inherit; color: var(--muted); }
+#dc-md .sort-btn[aria-pressed="true"] { color: var(--accent); }
+#dc-md .sort-btn:focus-visible { outline: 2px solid var(--field); outline-offset: 2px; }
 #dc-md table.board .pn { font-weight: 600; }
 #dc-md table.board .ps { font-size: 12px; color: var(--muted); }
 #dc-md table.board td.act { text-align: right; width: 90px; }

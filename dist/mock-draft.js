@@ -531,10 +531,16 @@ const LOGOS = {
 const SPEEDS = { slow: 900, fast: 250, instant: 0 };
 const PRIORITY = { balanced: { need: 5, noise: 4, label: "Balanced" }, bpa: { need: 1.5, noise: 2.5, label: "Best available" }, needs: { need: 10, noise: 4, label: "Team needs" } };
 const DEFAULT_SOURCE = `Consensus big board, ${BOARD.length} prospects`;
-let PLAYERS = defaultPlayers();
+// Position rank (WR1, WR2 …) in board order; a board that supplies its own (posRank already set) keeps it
+function withPosRanks(list) {
+  const seen = {};
+  for (const p of [...list].sort((a, b) => a.rank - b.rank)) { seen[p.pos] = (seen[p.pos] || 0) + 1; if (!p.posRank) p.posRank = seen[p.pos]; }
+  return list;
+}
+let PLAYERS = withPosRanks(defaultPlayers());
 let boardSource = DEFAULT_SOURCE;
 const S = { phase: "setup", user: new Set(), priority: "balanced", speed: "fast", rounds: 3, chart: "consensus", futures: true, cpuOffers: true,
-  picks: [], future: [], running: false, posFilter: new Set(), query: "", boardView: "all", trades: [] };
+  picks: [], future: [], running: false, posFilter: new Set(), sortBy: "overall", query: "", boardView: "all", trades: [] };
 let timer = null;
 
 const byId = id => PLAYERS.find(p => p.id === id);
@@ -752,7 +758,7 @@ function renderSetup() {
   app.querySelector("#o-offers").onchange = e => S.cpuOffers = e.target.checked;
   app.querySelector("#enter").onclick = startRoom;
   app.querySelector("#load").onclick = loadCsv;
-  app.querySelector("#sample").onclick = () => { PLAYERS = defaultPlayers(); boardSource = DEFAULT_SOURCE; renderSetup(); toast("Consensus board restored"); };
+  app.querySelector("#sample").onclick = () => { PLAYERS = withPosRanks(defaultPlayers()); boardSource = DEFAULT_SOURCE; renderSetup(); toast("Consensus board restored"); };
 }
 function loadCsv() {
   const lines = app.querySelector("#csv").value.split(/\n/).map(l => l.trim()).filter(Boolean);
@@ -764,7 +770,7 @@ function loadCsv() {
   });
   const msg = app.querySelector("#csv-msg");
   if (out.length < 40) { msg.textContent = `Need at least 40 valid lines (got ${out.length}).${bad.length ? ` Check lines ${bad.slice(0, 8).join(", ")}.` : ""}`; return; }
-  PLAYERS = out; boardSource = `Your board (${out.length} prospects)`;
+  PLAYERS = withPosRanks(out); boardSource = `Your board (${out.length} prospects)`;
   renderSetup(); toast(`Loaded ${out.length} prospects${bad.length ? `, skipped ${bad.length} lines` : ""}`);
 }
 function startRoom() {
@@ -835,10 +841,14 @@ function boardHtml() {
 function prospectsHtml(pk, mine) {
   const q = S.query.toLowerCase(), needs = pk ? openNeeds(pk.owner) : [];
   const rows = available().filter(p => (!S.posFilter.size || S.posFilter.has(p.pos)) && (!q || (p.name + " " + p.school).toLowerCase().includes(q)));
+  // Position-rank sort: every position's #1, then every #2 …, ties broken by overall rank
+  if (S.sortBy === "pos") rows.sort((a, b) => a.posRank - b.posRank || a.rank - b.rank);
   if (!rows.length) return `<p class="note" style="padding:12px">No prospects match.</p>`;
-  return `<table class="board"><thead><tr><th class="label">Rank</th><th class="label">Prospect</th><th></th></tr></thead><tbody>
+  const head = (key, label) => `<th class="label"><button class="sort-btn" data-sort="${key}" aria-pressed="${S.sortBy === key}">${label}${S.sortBy === key ? " ▾" : ""}</button></th>`;
+  return `<table class="board"><thead><tr>${head("overall", "Rank")}${head("pos", "Pos rk")}<th class="label">Prospect</th><th></th></tr></thead><tbody>
     ${rows.slice(0, 150).map(p => `<tr class="p" data-id="${p.id}">
       <td class="rk">${p.rank}</td>
+      <td class="prk">${p.pos}${p.posRank}</td>
       <td><span class="pos">${p.pos}</span> <span class="pn">${esc(p.name)}</span>${needs.includes(p.pos) ? `<span class="need-dot">NEED</span>` : ""}<div class="ps">${esc(p.school)}${p.ht ? ` · ${ft(p.ht)}, ${p.wt} lb` : ""}</div></td>
       <td class="act">${mine && !S.running ? `<button class="btn primary sm" data-draft="${p.id}">Draft</button>` : ""}</td></tr>`).join("")}
   </tbody></table>`;
@@ -872,6 +882,7 @@ function bindRoom() {
   bindRows();
 }
 function bindRows() {
+  app.querySelectorAll("[data-sort]").forEach(b => b.onclick = () => { S.sortBy = b.dataset.sort; renderRoom(); });
   app.querySelectorAll("[data-draft]").forEach(b => b.onclick = e => { e.stopPropagation(); makePick(byId(b.dataset.draft), "user"); S.running = true; tick(); });
   app.querySelectorAll("tr.p").forEach(r => r.onclick = () => openProfile(r.dataset.id));
 }
@@ -889,7 +900,7 @@ function openProfile(id) {
     <button class="btn sm close" data-close>Close</button>
     <div class="label">Prospect profile · #${p.rank} overall</div>
     <div class="prof-top"><div class="posbox">${p.pos}</div><div><h2>${esc(p.name)}</h2><div class="note">${esc(p.school)}</div></div></div>
-    <div class="facts"><div><span class="label">Height</span><b>${ft(p.ht)}</b></div><div><span class="label">Weight</span><b class="num">${p.wt || "—"}</b></div><div><span class="label">Class</span><b>${p.cls || "—"}</b></div><div><span class="label">Pos rank</span><b>${p.pos}${PLAYERS.filter(x => x.pos === p.pos && x.rank <= p.rank).length}</b></div></div>
+    <div class="facts"><div><span class="label">Height</span><b>${ft(p.ht)}</b></div><div><span class="label">Weight</span><b class="num">${p.wt || "—"}</b></div><div><span class="label">Class</span><b>${p.cls || "—"}</b></div><div><span class="label">Pos rank</span><b>${p.pos}${p.posRank}</b></div></div>
     <h3 style="margin-top:16px;font-size:18px">Rankings</h3>
     <table class="ranks"><tr><th class="label">Board</th><th class="label">Overall</th></tr>
       <tr><td>This simulator</td><td class="num">#${p.rank}</td></tr>
