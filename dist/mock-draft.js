@@ -485,7 +485,7 @@ const VALUES = {
 const FUTURE_YEARS = [2028, 2029, 2030];
 
 const defaultPlayers = () => BOARD.map(([name, pos, school, ht, wt, cls, cons, tek], i) =>
-  ({ id: "p" + (i + 1), rank: i + 1, name, pos, school, ht, wt, cls, boards: { "Consensus (57 boards)": cons, "DraftTek": tek } }));
+  ({ id: "p" + (i + 1), rank: i + 1, name, pos, school, ht, wt, cls, boards: { "Analyst consensus (57 boards)": cons, "DraftTek": tek } }));
 const makePlayer = (rank, name, pos, school) => ({ id: "p" + rank, rank, name, pos, school, ht: 0, wt: 0, cls: "", boards: {} });
 
 // Draft Craft logo, shown in the header and on the report card
@@ -530,7 +530,7 @@ const LOGOS = {
 /* ===================== STATE ===================== */
 const SPEEDS = { slow: 900, fast: 250, instant: 0 };
 const PRIORITY = { balanced: { need: 5, noise: 4, label: "Balanced" }, bpa: { need: 1.5, noise: 2.5, label: "Best available" }, needs: { need: 10, noise: 4, label: "Team needs" } };
-const DEFAULT_SOURCE = `Consensus big board, ${BOARD.length} prospects`;
+const DEFAULT_SOURCE = `General board, ${BOARD.length} prospects`;
 // Position rank (WR1, WR2 …) in board order; a board that supplies its own (posRank already set) keeps it
 function withPosRanks(list) {
   const seen = {};
@@ -746,7 +746,7 @@ function renderSetup() {
     <summary>Use your own big board</summary>
     <p>Paste one prospect per line, in rank order: <span class="num">Name, POS, School</span>. Positions: ${POSITIONS.join(" ")}. Current board: <b id="src">${esc(boardSource)}</b>.</p>
     <textarea id="csv" placeholder="Jalen Holloway, QB, Georgia&#10;Marcus Brooks, EDGE, Texas&#10;…"></textarea>
-    <div class="row" style="margin-top:8px"><button class="btn" id="load">Load board</button><button class="btn" id="sample">Restore consensus board</button><span class="note" id="csv-msg"></span></div>
+    <div class="row" style="margin-top:8px"><button class="btn" id="load">Load board</button><button class="btn" id="sample">Restore General board</button><span class="note" id="csv-msg"></span></div>
   </details>`;
   app.querySelectorAll(".team-card").forEach(b => b.onclick = () => { const t = b.dataset.team; S.user.has(t) ? S.user.delete(t) : S.user.add(t); renderSetup(); });
   app.querySelector("#all").onclick = () => { S.user = all ? new Set() : new Set(Object.keys(TEAMS)); renderSetup(); };
@@ -758,7 +758,7 @@ function renderSetup() {
   app.querySelector("#o-offers").onchange = e => S.cpuOffers = e.target.checked;
   app.querySelector("#enter").onclick = startRoom;
   app.querySelector("#load").onclick = loadCsv;
-  app.querySelector("#sample").onclick = () => { PLAYERS = withPosRanks(defaultPlayers()); boardSource = DEFAULT_SOURCE; renderSetup(); toast("Consensus board restored"); };
+  app.querySelector("#sample").onclick = () => { PLAYERS = withPosRanks(defaultPlayers()); boardSource = DEFAULT_SOURCE; renderSetup(); toast("General board restored"); };
 }
 function loadCsv() {
   const lines = app.querySelector("#csv").value.split(/\n/).map(l => l.trim()).filter(Boolean);
