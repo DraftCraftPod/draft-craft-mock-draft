@@ -180,7 +180,7 @@
 @media (prefers-reduced-motion: reduce) {
 #dc-md, #dc-md * { transition: none !important; }
 }
-#dc-md { padding-left: 0; padding-right: 0; scroll-margin-top: 96px; }
+#dc-md { padding: 8px clamp(16px, 3vw, 40px) 48px; scroll-margin-top: 96px; }
 #dc-md p, #dc-md label, #dc-md ul { margin: 0; }
 #dc-md label { font-weight: inherit; }
 #dc-md img { vertical-align: middle; }

@@ -29,7 +29,7 @@ MARKUP = """<div class="wrap">
 
 # Webflow's base styles set margins and weights on these tags; neutralize them inside the app
 RESET = f"""
-{SCOPE} {{ padding-left: 0; padding-right: 0; scroll-margin-top: 96px; }}
+{SCOPE} {{ padding: 8px clamp(16px, 3vw, 40px) 48px; scroll-margin-top: 96px; }}
 {SCOPE} p, {SCOPE} label, {SCOPE} ul {{ margin: 0; }}
 {SCOPE} label {{ font-weight: inherit; }}
 {SCOPE} img {{ vertical-align: middle; }}
