@@ -601,14 +601,14 @@ function cpuChoose(pk) {
 function makePick(player, by) {
   const pk = current(); if (!pk || !player) return;
   pk.player = player.id; pk.by = by;
-  if (!current()) { S.running = false; S.phase = "done"; }
+  if (!current()) { S.running = false; S.phase = "done"; saveMock(); }
   renderRoom();
 }
 function tick() {
   clearTimeout(timer);
   if (!S.running) return;
   const pk = current();
-  if (!pk) { S.running = false; S.phase = "done"; renderRoom(); return; }
+  if (!pk) { S.running = false; if (S.phase !== "done") { S.phase = "done"; saveMock(); } renderRoom(); return; }
   if (isUser(pk)) { S.running = false; renderRoom(); toast(`You're on the clock: ${team(pk.owner)} at #${pk.no}`); return; }
   timer = setTimeout(() => { makePick(cpuChoose(pk), "cpu"); tick(); }, SPEEDS[S.speed]);
 }
@@ -742,6 +742,7 @@ function renderSetup() {
     <div class="enter"><button class="btn primary" id="enter" ${S.user.size ? "" : "disabled"}>Enter draft room</button>
       <small>${S.user.size ? `${S.user.size} team${S.user.size > 1 ? "s" : ""} selected` : "Select at least one team"}</small></div>
   </div>
+  ${recentMocksHtml()}
   <details class="import">
     <summary>Use your own big board</summary>
     <p>Paste one prospect per line, in rank order: <span class="num">Name, POS, School</span>. Positions: ${POSITIONS.join(" ")}. Current board: <b id="src">${esc(boardSource)}</b>.</p>
@@ -758,6 +759,8 @@ function renderSetup() {
   app.querySelector("#o-offers").onchange = e => S.cpuOffers = e.target.checked;
   app.querySelector("#enter").onclick = startRoom;
   app.querySelector("#load").onclick = loadCsv;
+  app.querySelectorAll("[data-open-mock]").forEach(b => b.onclick = () => openMock(+b.dataset.openMock));
+  app.querySelectorAll("[data-del-mock]").forEach(b => b.onclick = () => deleteMock(+b.dataset.delMock));
   app.querySelector("#sample").onclick = () => { PLAYERS = withPosRanks(defaultPlayers()); boardSource = DEFAULT_SOURCE; renderSetup(); toast("General board restored"); };
 }
 function loadCsv() {
@@ -774,9 +777,10 @@ function loadCsv() {
   renderSetup(); toast(`Loaded ${out.length} prospects${bad.length ? `, skipped ${bad.length} lines` : ""}`);
 }
 function startRoom() {
-  S.picks = buildPicks(S.rounds); S.future = buildFuture(); S.phase = "draft"; S.running = false; S.trades = []; S.posFilter = new Set(); S.query = ""; initOffers();
-  renderRoom(); root.scrollIntoView({ block: "start" });
+  S.picks = buildPicks(S.rounds); S.future = buildFuture(); S.phase = "draft"; S.running = false; S.trades = []; S.posFilter = new Set(); S.query = ""; S.mockId = Date.now(); initOffers();
+  showRoom();
 }
+function showRoom() { renderRoom(); root.scrollIntoView({ block: "start" }); }
 
 /* ===================== DRAFT ROOM ===================== */
 function renderRoom() {
@@ -1026,7 +1030,7 @@ function resultsHtml() {
       <h2>${grades.length === 1 ? `${team(grades[0][0])} class · <span class="${gradeClass(grades[0][1])}">${grades[0][1]}</span>` : "Your classes"}</h2>
       ${grades.length > 1 ? `<div class="row" style="margin-top:6px">${grades.map(([t, g]) => `<span class="mypick done">${t} <span class="${gradeClass(g)}">${g}</span></span>`).join("")}</div>` : ""}</div>
     <div class="row"><button class="btn primary" id="card">Report card image</button><button class="btn" id="copy">Copy results</button><button class="btn" id="again">Draft again</button></div></div>
-    <p class="note">Pick grades compare where you picked to the player's board rank (later picks need bigger gaps) and give credit for filling a need. The class grade weights earlier picks more and counts trade value won or lost.</p>
+    <p class="note">${S.mockId && listMocks().some(m => m.id === S.mockId) ? "Saved to Recent mocks on this device. " : ""}Pick grades compare where you picked to the player's board rank (later picks need bigger gaps) and give credit for filling a need. The class grade weights earlier picks more and counts trade value won or lost.</p>
     ${S.trades.length ? `<div class="label" style="margin-top:12px">Trades</div><ul class="note" style="margin:6px 0 0;padding-left:18px">${S.trades.map(t => `<li>${t.team} sent ${t.sent.join(", ")} to ${t.partner} for ${t.got.join(", ")}</li>`).join("")}</ul>` : ""}
     <div class="res-grid">${mine.map(p => { const pl = byId(p.player), g = gradeOf(p), d = boardDiff(p);
       return `<div class="res"><span class="grade ${g[1]}">${g[0]}</span><div style="min-width:0"><b>${esc(pl.name)}</b><div class="note">#${p.no} ${p.owner} · ${pl.pos}, ${esc(pl.school)} · rank ${pl.rank} (${signed(d)})</div></div><span class="label">${g[2]}</span></div>`; }).join("") || `<p class="note">You made no picks.</p>`}</div>
@@ -1164,6 +1168,72 @@ function copyResults() {
   const trades = S.trades.map(t => `Trade: ${t.team} sent ${t.sent.join(", ")} to ${t.partner} for ${t.got.join(", ")}`);
   const text = "My Draft Craft mock draft\n" + lines.concat(trades).join("\n");
   navigator.clipboard?.writeText(text).then(() => toast("Results copied"), () => toast("Copy blocked. Select the results text instead."));
+}
+
+/* ===================== SAVED MOCKS ===================== */
+// Finished mocks are kept in this browser (newest first, up to MOCK_LIMIT) so people can reopen one later
+// from "Recent mocks" on the team screen. Storage can be blocked or cleared, so every access is guarded.
+const MOCK_KEY = "dcmd-mocks-v1", MOCK_LIMIT = 20;
+function listMocks() {
+  try { const v = JSON.parse(localStorage.getItem(MOCK_KEY) || "[]"); return Array.isArray(v) ? v : []; } catch { return []; }
+}
+function writeMocks(list) {
+  try { localStorage.setItem(MOCK_KEY, JSON.stringify(list)); return true; } catch { return false; }
+}
+function saveMock() {
+  if (!S.mockId) S.mockId = Date.now();
+  const drafted = S.picks.filter(p => p.player);
+  const teams = [...S.user].filter(t => drafted.some(p => p.owner === t));
+  if (!teams.length) return;
+  const mock = {
+    id: S.mockId, at: new Date().toISOString(), user: [...S.user], rounds: S.rounds, chart: S.chart, priority: S.priority,
+    futures: S.futures, source: boardSource, grades: teams.map(t => [t, classGrade(t)]),
+    picks: S.picks.map(({ no, round, orig, owner, player, by }) => ({ no, round, orig, owner, player, by })), trades: S.trades,
+    movedFuture: S.future.filter(f => f.owner !== f.orig).map(f => [f.key, f.owner]),
+    players: drafted.map(p => byId(p.player)),
+  };
+  let list = listMocks().filter(m => m.id !== mock.id);
+  list.unshift(mock);
+  // Drop the oldest if storage is full
+  while (list.length > MOCK_LIMIT || (!writeMocks(list) && list.length > 1)) list = list.slice(0, Math.min(list.length - 1, MOCK_LIMIT));
+}
+function openMock(id) {
+  const m = listMocks().find(x => x.id === id);
+  if (!m) { toast("That mock is no longer saved."); renderSetup(); return; }
+  clearTimeout(timer);
+  // Drafted players come from the mock itself, so it reopens the same way even if the board has changed
+  const ids = new Set(m.players.map(p => p.id));
+  PLAYERS = withPosRanks([...m.players, ...PLAYERS.filter(p => !ids.has(p.id))]);
+  Object.assign(S, { user: new Set(m.user), rounds: m.rounds, chart: CHARTS[m.chart] ? m.chart : S.chart, priority: m.priority || S.priority,
+    futures: !!m.futures, picks: m.picks, trades: m.trades || [], future: restoreFuture(m.movedFuture), mockId: m.id,
+    phase: "done", running: false, posFilter: new Set(), query: "", boardView: "mine" });
+  initOffers();
+  showRoom();
+}
+function restoreFuture(moved = []) {
+  const fut = buildFuture(), owner = new Map(moved);
+  fut.forEach(x => { if (owner.has(x.key)) x.owner = owner.get(x.key); });
+  return fut;
+}
+function deleteMock(id) {
+  writeMocks(listMocks().filter(m => m.id !== id));
+  renderSetup(); toast("Mock removed");
+}
+function recentMocksHtml() {
+  const list = listMocks();
+  if (!list.length) return "";
+  const when = iso => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return `<section class="recent">
+    <div class="panel-head"><div><h3>Recent mocks</h3><div class="note">Finished drafts are saved in this browser automatically.</div></div></div>
+    <div class="recent-list">${list.map(m => {
+      const first = m.picks.filter(p => m.user.includes(p.owner) && p.player).slice(0, 3).map(p => m.players.find(x => x.id === p.player)).filter(Boolean);
+      return `<div class="recent-item">
+        <div class="recent-grades">${m.grades.slice(0, 4).map(([t, g]) => `${badge(t)}<span class="grade ${gradeClass(g)}">${g}</span>`).join("")}${m.grades.length > 4 ? `<span class="note">+${m.grades.length - 4}</span>` : ""}</div>
+        <div style="min-width:0"><b>${m.grades.length === 1 ? esc(team(m.grades[0][0])) : `${m.grades.length} teams`}</b> <span class="note">· ${m.rounds} round${m.rounds > 1 ? "s" : ""} · ${when(m.at)}</span>
+          <div class="note recent-picks">${first.map(p => `${esc(p.name)} (${p.pos})`).join(", ")}${first.length ? "…" : ""}</div></div>
+        <div class="row"><button class="btn sm primary" data-open-mock="${m.id}">Open</button><button class="btn sm" data-del-mock="${m.id}" aria-label="Delete this mock">Delete</button></div>
+      </div>`; }).join("")}</div>
+  </section>`;
 }
 
 /* ===================== UTIL ===================== */

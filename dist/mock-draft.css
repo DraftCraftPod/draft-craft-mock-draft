@@ -137,6 +137,16 @@
 #dc-md .g-b { color: var(--field); }
 #dc-md .g-c { color: var(--warn); }
 #dc-md .g-d { color: var(--bad); }
+#dc-md .recent { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+#dc-md .recent-list { display: grid; gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
+#dc-md .recent-item { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; background: var(--surface); }
+#dc-md .recent-grades { display: flex; align-items: center; gap: 6px; }
+#dc-md .recent-grades .grade { width: auto; font-size: 20px; margin-right: 4px; }
+#dc-md .recent-picks { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 600px) {
+#dc-md .recent-item { grid-template-columns: 1fr auto; }
+#dc-md .recent-item > div:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+}
 #dc-md .scrim { position: fixed; inset: 0; background: rgb(5 10 16 / .5); z-index: 20; }
 #dc-md .drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100%); background: var(--surface); z-index: 21; border-left: 1px solid var(--line); overflow-y: auto;
   padding: calc(18px + env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) 20px; }
