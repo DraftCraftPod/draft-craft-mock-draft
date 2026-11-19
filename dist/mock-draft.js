@@ -1304,7 +1304,7 @@ setInterval(loadLive, 15 * 60 * 1000);
 const app = root.querySelector("#dcmd-app"), overlay = root.querySelector("#dcmd-overlay");
 const brandLogo = document.getElementById("dc-brand-logo");
 if (brandLogo) brandLogo.src = DC_LOGO;
-S.user.add("JAX");
+S.user.add("DET");
 renderFresh();
 renderSetup();
 
