@@ -691,7 +691,7 @@ function offersHtml(pk) {
         <div style="min-width:0"><div><b>${team(o.team)}</b> want to move up${tg ? ` for <b>${esc(tg.name)}</b> <span class="pos">${tg.pos}</span>` : ""}</div>
         <div class="pkg">They send ${o.give.map(k => assetLabel(k)).join(" + ")}</div>
         <div class="note num">${o.value} pts for your ${o.userVal} (${pct >= 0 ? "+" : ""}${pct}%)</div></div>
-        <div class="acts"><button class="btn primary sm" data-accept="${i}">Accept</button><button class="btn sm" data-decline="${i}">Decline</button></div></div>`; }).join("")}
+        <div class="acts"><button class="btn primary sm" data-accept="${i}">Accept</button><button class="btn sm" data-counter="${i}">Counter</button><button class="btn sm" data-decline="${i}">Decline</button></div></div>`; }).join("")}
   </section>`;
 }
 function acceptOffer(i) {
@@ -708,6 +708,20 @@ function acceptOffer(i) {
   S.offersFor[pk.no] = [];
   toast(`Trade done: ${team(o.team)} move up to #${pk.no}. You get ${got.join(", ")}`);
   S.running = true; renderRoom(); tick();
+}
+// Counter an offer: the trade sheet opens with your pick on the clock locked in and their package pre-filled.
+// A team that wants to move up pays a premium: it accepts anything up to COUNTER_CAP times the value it receives.
+const COUNTER_CAP = 1.25;
+function counterOffer(i) {
+  const pk = current(), o = (S.offersFor[pk.no] || [])[i];
+  if (!o || !isUser(pk)) return;
+  if (!o.give.every(k => { const a = assetOf(k); return a && a.owner === o.team && !a.player; })) {
+    S.offersFor[pk.no].splice(i, 1); renderRoom(); toast("That offer is no longer available."); return;
+  }
+  T.mine = pk.owner; T.partner = o.team;
+  T.give = new Set(["P-" + pk.no]); T.get = new Set(o.give);
+  T.counter = { pick: pk.no, target: o.target };
+  renderTrade();
 }
 
 /* ===================== SETUP VIEW ===================== */
@@ -880,7 +894,9 @@ function bindRoom() {
   });
   $("#copy") && ($("#copy").onclick = copyResults);
   $("#card") && ($("#card").onclick = () => openReportCard());
+  $("#board-img") && ($("#board-img").onclick = openRoundOneImage);
   app.querySelectorAll("[data-accept]").forEach(b => b.onclick = () => acceptOffer(+b.dataset.accept));
+  app.querySelectorAll("[data-counter]").forEach(b => b.onclick = () => counterOffer(+b.dataset.counter));
   app.querySelectorAll("[data-decline]").forEach(b => b.onclick = () => { S.offersFor[current().no].splice(+b.dataset.decline, 1); renderRoom(); });
   $("#again") && ($("#again").onclick = () => { startRoom(); });
   bindRows();
@@ -918,7 +934,7 @@ function openProfile(id) {
 
 /* ===================== TRADES ===================== */
 // Trade assets are keyed "P-<pick no>" for this draft and "F-<team>-<round>" for next year's picks
-const T = { mine: null, partner: null, give: new Set(), get: new Set() };
+const T = { mine: null, partner: null, give: new Set(), get: new Set(), counter: null };
 const assetOf = key => key[0] === "P" ? S.picks.find(p => p.no === +key.slice(2)) : S.future.find(f => f.key === key);
 const assetValue = key => { const a = assetOf(key); return key[0] === "P" ? pickValue(a.no) : pickValueAt(futureSlot(a.round, a.year, a.orig)); };
 function assetLabel(key, withTeam = false) {
@@ -928,12 +944,15 @@ function assetLabel(key, withTeam = false) {
 function openTrade() {
   const pk = current();
   T.mine = isUser(pk) ? pk.owner : [...S.user][0];
-  T.partner = pk && !isUser(pk) ? pk.owner : ORDER.find(t => !S.user.has(t)) || null;
-  T.give = new Set(); T.get = new Set();
-  if (pk && !isUser(pk)) T.get.add("P-" + pk.no);
-  if (!T.partner) { toast("You control every team, so there's no one to trade with"); return; }
+  // Default partner: the team on the clock if it isn't yours, else a computer team, else (you control
+  // every team) any other team — trades between two of your own teams go through without a value check
+  T.partner = pk && pk.owner !== T.mine ? pk.owner : otherTeam(T.mine);
+  T.give = new Set(); T.get = new Set(); T.counter = null;
+  if (pk && pk.owner === T.partner) T.get.add("P-" + pk.no);
+  if (!T.partner) { toast("There's no other team to trade with"); return; }
   renderTrade();
 }
+const otherTeam = not => ORDER.find(t => t !== not && !S.user.has(t)) || ORDER.find(t => t !== not) || null;
 function valuesTableHtml() {
   const anchors = [1, 2, 5, 10, 16, 32, 48, 64, 96, 128, 160, 192, 224];
   const keys = Object.keys(CHARTS);
@@ -952,32 +971,43 @@ function renderTrade() {
   const sum = set => [...set].reduce((a, k) => a + assetValue(k), 0);
   const give = sum(T.give), get = sum(T.get);
   const need = Math.ceil(get * 1.05);
-  const ok = T.give.size && T.get.size && give >= need;
-  const pct = get ? Math.min(100, give / need * 100) : 0;
-  const row = (who, set) => k => `<label><span><input type="checkbox" data-${who}="${k}" ${set.has(k) ? "checked" : ""}> ${assetLabel(k)}</span><span class="num note">${k[0] === "F" ? `like #${Math.round(futureSlot(assetOf(k).round, assetOf(k).year, assetOf(k).orig))} · ` : ""}${assetValue(k)} pts</span></label>`;
+  const both = S.user.has(T.partner); // you control both sides, so there's no computer to convince
+  // Counter mode: the pick on the clock stays in the deal, and the team moving up pays up to COUNTER_CAP times its value
+  const ctr = T.counter, locked = ctr ? "P-" + ctr.pick : null, cap = ctr ? Math.floor(give * COUNTER_CAP) : 0;
+  const ok = T.give.size && T.get.size && (both || (ctr ? T.give.has(locked) && get <= cap : give >= need));
+  const pct = both ? (T.give.size && T.get.size ? 100 : 0) : ctr ? (get ? Math.min(100, cap / get * 100) : 0) : get ? Math.min(100, give / need * 100) : 0;
+  const diff = give - get;
+  const row = (who, set) => k => `<label><span><input type="checkbox" data-${who}="${k}" ${set.has(k) ? "checked" : ""} ${k === locked ? "disabled" : ""}> ${assetLabel(k)}</span><span class="num note">${k[0] === "F" ? `like #${Math.round(futureSlot(assetOf(k).round, assetOf(k).year, assetOf(k).orig))} · ` : ""}${assetValue(k)} pts</span></label>`;
   const col = (who, owner, set, opts) => { const ks = keysFor(owner), now = ks.filter(k => k[0] === "P");
-    return `<div class="trade-col"><header>${badge(owner, "xs")}<select id="sel-${who}">${opts.map(t => `<option value="${t}" ${t === owner ? "selected" : ""}>${team(t)}</option>`).join("")}</select></header>
+    return `<div class="trade-col"><header>${badge(owner, "xs")}<select id="sel-${who}" ${ctr ? "disabled" : ""}>${opts.map(t => `<option value="${t}" ${t === owner ? "selected" : ""}>${team(t)}</option>`).join("")}</select></header>
     <div class="assets">${now.length ? `<div class="grp label">2027 picks</div>${now.map(row(who, set)).join("")}` : ""}
     ${FUTURE_YEARS.map(y => { const fy = ks.filter(k => k.startsWith(`F-${y}-`)); return fy.length ? `<div class="grp label">${y} picks</div>${fy.map(row(who, set)).join("")}` : ""; }).join("")}
     ${ks.length ? "" : `<p class="note" style="padding:10px">No picks left.</p>`}</div>
-    <div class="tot"><span>${who === "give" ? "You send" : "You receive"}</span><span class="num">${who === "give" ? give : get} pts</span></div></div>`; };
+    <div class="tot"><span>${both ? `${owner} sends` : who === "give" ? "You send" : "You receive"}</span><span class="num">${who === "give" ? give : get} pts</span></div></div>`; };
   overlay.innerHTML = `<div class="scrim" data-close></div><div class="sheet" role="dialog" aria-label="Trade">
     <button class="btn sm close" data-close>Close</button>
-    <h2 style="font-size:26px">Trade picks</h2>
+    <h2 style="font-size:26px">${ctr ? "Counter offer" : "Trade picks"}</h2>
     <div class="row" style="margin-top:6px"><label class="row note" for="t-chart">Value chart</label>
       <select id="t-chart" class="search" style="width:auto">${Object.entries(CHARTS).map(([k, v]) => `<option value="${k}" ${S.chart === k ? "selected" : ""}>${v.name}</option>`).join("")}</select>
-      <span class="note">The computer accepts when it gets at least 5% more value than it gives up.</span></div>
-    <div class="trade-cols">${col("give", T.mine, T.give, [...S.user])}${col("get", T.partner, T.get, Object.keys(TEAMS).filter(t => !S.user.has(t)))}</div>
+      <span class="note">${both ? "You control both teams, so any trade goes through. Values are shown for reference."
+        : ctr ? `${team(T.partner)} want #${ctr.pick}${byId(ctr.target) ? ` for ${esc(byId(ctr.target).name)}` : ""}, so they'll send up to ${Math.round((COUNTER_CAP - 1) * 100)}% more value than they get. Ask for more picks, or swap them for better ones.`
+        : "The computer accepts when it gets at least 5% more value than it gives up."}</span></div>
+    <div class="trade-cols">${col("give", T.mine, T.give, [...S.user])}${col("get", T.partner, T.get, Object.keys(TEAMS).filter(t => t !== T.mine))}</div>
     <div class="meter"><i style="width:${pct}%;background:${ok ? "var(--good)" : pct > 80 ? "var(--warn)" : "var(--bad)"}"></i></div>
     <div class="row" style="justify-content:space-between">
-      <span class="verdict" style="color:${ok ? "var(--good)" : "var(--muted)"}">${!T.get.size ? "Choose picks you want." : !T.give.size ? "Choose picks to send." : ok ? `${team(T.partner)} will accept.` : `${team(T.partner)} needs ${need - give} more points.`}</span>
+      <span class="verdict" style="color:${ok ? "var(--good)" : "var(--muted)"}">${!T.get.size ? "Choose picks you want." : !T.give.size ? "Choose picks to send." : both ? (diff === 0 ? "Even trade." : `${diff > 0 ? T.partner : T.mine} wins by ${Math.abs(diff)} pts.`)
+        : ctr && !ok ? `${team(T.partner)} won't send more than ${cap} pts for that. Take ${get - cap} pts off your ask.` : ok ? `${team(T.partner)} will accept.` : `${team(T.partner)} needs ${need - give} more points.`}</span>
       <button class="btn primary" id="propose" ${ok ? "" : "disabled"}>Make trade</button>
     </div>
     ${valuesTableHtml()}</div>`;
   if (openVals) overlay.querySelector("#vals").open = true;
   bindOverlay();
   overlay.querySelector("#t-chart").onchange = e => { S.chart = e.target.value; renderTrade(); };
-  overlay.querySelector("#sel-give").onchange = e => { T.mine = e.target.value; T.give.clear(); renderTrade(); };
+  overlay.querySelector("#sel-give").onchange = e => {
+    T.mine = e.target.value; T.give.clear();
+    if (T.partner === T.mine) { T.partner = otherTeam(T.mine); T.get.clear(); }
+    renderTrade();
+  };
   overlay.querySelector("#sel-get").onchange = e => { T.partner = e.target.value; T.get.clear(); renderTrade(); };
   overlay.querySelectorAll("[data-give]").forEach(c => c.onchange = () => { const k = c.dataset.give; c.checked ? T.give.add(k) : T.give.delete(k); renderTrade(); });
   overlay.querySelectorAll("[data-get]").forEach(c => c.onchange = () => { const k = c.dataset.get; c.checked ? T.get.add(k) : T.get.delete(k); renderTrade(); });
@@ -986,6 +1016,12 @@ function renderTrade() {
     T.give.forEach(k => assetOf(k).owner = T.partner);
     T.get.forEach(k => assetOf(k).owner = T.mine);
     S.trades.push({ team: T.mine, partner: T.partner, sent, got, sentVal: give, gotVal: get });
+    if (ctr) {
+      // Same finish as accepting their offer: they're on the clock and take the player they moved up for
+      S.cpuTargets[ctr.pick] = ctr.target; S.offersFor[ctr.pick] = []; T.counter = null;
+      closeOverlay(); toast(`Counter accepted: ${team(T.partner)} move up to #${ctr.pick}. You get ${got.join(", ")}`);
+      S.running = true; renderRoom(); tick(); return;
+    }
     closeOverlay(); renderRoom();
     toast(`Trade done: ${T.mine} gets ${got.join(", ")}`);
   };
@@ -1029,7 +1065,7 @@ function resultsHtml() {
     <div class="row" style="justify-content:space-between"><div><div class="label">Draft complete</div>
       <h2>${grades.length === 1 ? `${team(grades[0][0])} class · <span class="${gradeClass(grades[0][1])}">${grades[0][1]}</span>` : "Your classes"}</h2>
       ${grades.length > 1 ? `<div class="row" style="margin-top:6px">${grades.map(([t, g]) => `<span class="mypick done">${t} <span class="${gradeClass(g)}">${g}</span></span>`).join("")}</div>` : ""}</div>
-    <div class="row"><button class="btn primary" id="card">Report card image</button><button class="btn" id="copy">Copy results</button><button class="btn" id="again">Draft again</button></div></div>
+    <div class="row"><button class="btn primary" id="card">Report card image</button><button class="btn" id="board-img">Round 1 image</button><button class="btn" id="copy">Copy results</button><button class="btn" id="again">Draft again</button></div></div>
     <p class="note">${S.mockId && listMocks().some(m => m.id === S.mockId) ? "Saved to Recent mocks on this device. " : ""}Pick grades compare where you picked to the player's board rank (later picks need bigger gaps) and give credit for filling a need. The class grade weights earlier picks more and counts trade value won or lost.</p>
     ${S.trades.length ? `<div class="label" style="margin-top:12px">Trades</div><ul class="note" style="margin:6px 0 0;padding-left:18px">${S.trades.map(t => `<li>${t.team} sent ${t.sent.join(", ")} to ${t.partner} for ${t.got.join(", ")}</li>`).join("")}</ul>` : ""}
     <div class="res-grid">${mine.map(p => { const pl = byId(p.player), g = gradeOf(p), d = boardDiff(p);
@@ -1149,6 +1185,75 @@ async function openReportCard(abbr) {
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     share.hidden = false;
     share.onclick = () => navigator.share({ files: [file], title: "My Draft Craft mock draft" }).catch(() => {});
+  }
+}
+/* ===================== ROUND 1 BOARD IMAGE ===================== */
+// All 32 first-round picks on one 1080×1350 card (Instagram's largest portrait size), two columns of 16
+async function drawRoundOne() {
+  const css = getComputedStyle(app), font = v => css.getPropertyValue(v).trim();
+  const DISPLAY = font("--display") || "Impact, sans-serif", BODY = font("--body") || "sans-serif", MONO = font("--mono") || "monospace", MARKER = font("--marker") || "cursive";
+  await Promise.all([`40px ${DISPLAY}`, `700 21px ${BODY}`, `500 15px ${BODY}`, `500 16px ${MONO}`, `28px ${MARKER}`].map(f => document.fonts.load(f).catch(() => null)));
+  const picks = S.picks.filter(p => p.round === 1);
+  const W = 1080, H = 1350, PAD = 48, GAP = 24, ROW = 66, TOP = 214, COLW = (W - PAD * 2 - GAP) / 2;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  const [dc, ...logos] = await Promise.all([loadImg(DC_LOGO), ...picks.map(p => loadImg(LOGOS[p.owner]))]);
+
+  // Header band
+  x.fillStyle = CARD.bg; x.fillRect(0, 0, W, H);
+  x.fillStyle = CARD.band; x.fillRect(0, 0, W, 186);
+  x.fillStyle = CARD.gold; x.fillRect(0, 186, W, 5);
+  if (dc) x.drawImage(dc, PAD, 34, 96, 90);
+  x.font = `40px ${DISPLAY}`; x.fillStyle = CARD.gold; x.fillText("DRAFT", PAD + 116, 78);
+  const dw = x.measureText("DRAFT ").width; x.fillStyle = CARD.ink; x.fillText("CRAFT", PAD + 116 + dw, 78);
+  x.font = `28px ${MARKER}`; x.fillStyle = CARD.lav; x.fillText("Mock Draft · Round 1", PAD + 116, 118);
+  x.font = `500 16px ${MONO}`; x.fillStyle = CARD.muted;
+  x.fillText(`2027 NFL DRAFT · FIRST ROUND${S.trades.length ? ` · ${S.trades.length} TRADE${S.trades.length === 1 ? "" : "S"} IN THIS MOCK` : ""}`, PAD, 162);
+
+  // Two columns of 16 picks
+  picks.forEach((p, i) => {
+    const col = i < 16 ? 0 : 1, r = i % 16, x0 = PAD + col * (COLW + GAP), y = TOP + r * ROW, pl = byId(p.player);
+    if (r % 2 === 0) { x.fillStyle = CARD.stripe; x.fillRect(x0 - 8, y, COLW + 16, ROW); }
+    x.font = `30px ${DISPLAY}`; x.fillStyle = CARD.gold; x.textAlign = "right"; x.fillText(String(p.no), x0 + 42, y + 44); x.textAlign = "left";
+    if (logos[i]) x.drawImage(logos[i], x0 + 52, y + 13, 40, 40);
+    const tx = x0 + 104, tw = COLW - 108;
+    x.font = `700 21px ${BODY}`; x.fillStyle = pl ? CARD.ink : CARD.muted; x.fillText(fitText(x, pl ? pl.name : "—", tw), tx, y + 30);
+    x.font = `500 15px ${BODY}`;
+    if (pl) {
+      x.fillStyle = CARD.lav; x.fillText(pl.pos, tx, y + 52);
+      const pw = x.measureText(pl.pos + " ").width;
+      x.fillStyle = CARD.muted; x.fillText(fitText(x, `· ${team(p.owner)}${p.owner !== p.orig ? ` via ${p.orig}` : ""} · ${pl.school}`, tw - pw), tx + pw, y + 52);
+    } else { x.fillStyle = CARD.muted; x.fillText(team(p.owner), tx, y + 52); }
+  });
+
+  // Footer
+  x.fillStyle = CARD.gold; x.fillRect(PAD - 8, H - 72, W - PAD * 2 + 16, 3);
+  x.font = `24px ${DISPLAY}`; x.fillStyle = CARD.gold; x.fillText("DRAFTCRAFTPOD.COM/MOCK-DRAFT", PAD, H - 28);
+  x.font = `500 16px ${MONO}`; x.fillStyle = CARD.muted; x.textAlign = "right";
+  x.fillText(new Date().toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }).toUpperCase(), W - PAD, H - 30);
+  x.textAlign = "left";
+  return c;
+}
+async function openRoundOneImage() {
+  overlay.innerHTML = `<div class="scrim" data-close></div><div class="sheet" role="dialog" aria-label="Round 1 image">
+    <button class="btn sm close" data-close>Close</button>
+    <h2 style="font-size:26px">Round 1</h2>
+    <div class="rc-wrap"><p class="note">Drawing the first round…</p></div>
+    <div class="row" style="margin-top:12px"><button class="btn primary" id="rc-save" disabled>Save image</button><button class="btn" id="rc-share" hidden>Share</button></div>
+  </div>`;
+  bindOverlay();
+  const canvas = await drawRoundOne();
+  const wrap = overlay.querySelector(".rc-wrap");
+  if (!wrap) return;   // closed while drawing
+  const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+  const name = "draft-craft-mock-round-1.png";
+  wrap.innerHTML = `<img class="rc-img" src="${URL.createObjectURL(blob)}" alt="All 32 first-round picks from this mock draft">`;
+  const save = overlay.querySelector("#rc-save");
+  save.disabled = false; save.onclick = () => saveImage(blob, name);
+  const file = new File([blob], name, { type: "image/png" }), share = overlay.querySelector("#rc-share");
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    share.hidden = false;
+    share.onclick = () => navigator.share({ files: [file], title: "My Draft Craft mock draft: Round 1" }).catch(() => {});
   }
 }
 // claude.ai saves through its downloads capability; on the website a normal download link works
