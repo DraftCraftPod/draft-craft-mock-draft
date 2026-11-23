@@ -751,22 +751,27 @@ function buildOffers(pk) {
   const offers = [];
   for (const c of cands.slice(0, 6)) {
     if (offers.length >= want) break;
-    const pkg = buildPackage(c.team, userVal, pk.no + 40);
+    const pkg = buildPackage(c.team, userVal, pk.no + 40, pk.round === 7);
     if (pkg) offers.push({ team: c.team, target: c.target.id, give: pkg.keys, value: pkg.value, userVal });
   }
   return offers;
 }
 // Search every combination of up to four of the team's picks (always including one near the user's pick) for packages
-// inside OFFER_RANGE; prefer fewer picks, then the total closest to the user's pick, with a little randomness
-function buildPackage(abbr, userVal, windowEnd) {
-  const lo = userVal * OFFER_RANGE[0], hi = userVal * OFFER_RANGE[1];
+// inside OFFER_RANGE; prefer fewer picks, then the total closest to the user's pick, with a little randomness.
+// In the 7th round nobody moves back for a later pick of the same value, so the package must also include a future
+// 6th or 7th (2028 or 2029) as the sweetener, and the OFFER_RANGE cap doesn't apply.
+function buildPackage(abbr, userVal, windowEnd, seventh = false) {
+  if (seventh && !S.futures) return null;
+  const lo = userVal * OFFER_RANGE[0], hi = seventh ? userVal * 3 : userVal * OFFER_RANGE[1];
+  const futureOk = f => f.owner === abbr && f.year <= 2029 && (seventh ? f.round >= 6 : f.round <= 4);
   const assets = [
     ...S.picks.filter(p => p.owner === abbr && !p.player && p.no > current().no).map(p => ({ k: "P-" + p.no, near: p.no <= windowEnd })),
-    ...(S.futures ? S.future.filter(f => f.owner === abbr && f.year <= 2029 && f.round <= 4).map(f => ({ k: f.key, near: false })) : []),
+    ...(S.futures ? S.future.filter(futureOk).map(f => ({ k: f.key, near: false, sweet: seventh })) : []),
   ].map(x => ({ ...x, v: assetValue(x.k) })).filter(x => x.v < hi);
   const found = [];
   const walk = (start, chosen, total) => {
-    if (chosen.length && total >= lo && chosen.some(x => x.near)) found.push({ keys: chosen.map(x => x.k), value: total });
+    if (chosen.length && total >= lo && chosen.some(x => x.near) && (!seventh || chosen.some(x => x.sweet)))
+      found.push({ keys: chosen.map(x => x.k), value: total });
     if (chosen.length === 4) return;
     for (let i = start; i < assets.length; i++) if (total + assets[i].v <= hi) walk(i + 1, [...chosen, assets[i]], total + assets[i].v);
   };
