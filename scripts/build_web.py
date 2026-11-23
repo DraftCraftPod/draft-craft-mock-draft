@@ -84,9 +84,10 @@ const LIVE_BASE = root.dataset.live || "";
 async function loadLive() {
   if (!LIVE_BASE) return;
   const get = name => fetch(LIVE_BASE + name, { cache: "no-cache" }).then(r => r.ok ? r.json() : null).catch(() => null);
-  const [order, records] = await Promise.all([get("order.json"), get("records.json")]);
+  const [order, records, boards] = await Promise.all([get("order.json"), get("records.json"), get("boards.json")]);
   if (order) applyOrder(order);
   if (records) applyRecords(records);
+  if (boards) applyBoards(boards);
 }
 loadLive();
 setInterval(loadLive, 15 * 60 * 1000);"""

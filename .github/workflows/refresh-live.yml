@@ -1,4 +1,4 @@
-name: Refresh live draft order and records
+name: Refresh live draft order, records and boards
 
 on:
   schedule:
@@ -19,6 +19,9 @@ jobs:
           python-version: "3.12"
       - name: Fetch Tankathon order and ESPN records
         run: python3 scripts/refresh_live.py
+      - name: Fetch Dan's and JP's big boards from Google Sheets
+        if: always()
+        run: python3 scripts/refresh_boards.py
       - name: Commit changes
         if: always()
         run: |

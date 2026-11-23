@@ -44,6 +44,19 @@ Live data on the website:
   the order through the 2027 draft; records stop after the regular season.
 - The page re-checks the files every 15 minutes while open.
 
+Big boards (`live/boards.json`):
+
+- `scripts/refresh_boards.py` (same daily job) reads Dan's and JP's Google Sheets, published to the web as CSV.
+  The links are in `SHEETS` at the top of the script. Columns are found by header name (OR, First/Last Name or
+  Player, Pos., College/School, PR), so the sheets can be rearranged.
+- Rows that share one OR value six or more times (e.g. a "273" fill-in) count as listed but not ranked.
+- Players are matched to the General board by name, or by a close spelling at the same school and position, to
+  keep height, weight and class. The job's run page on GitHub (Actions → the run → Summary) lists ranked players
+  it couldn't match.
+- The page's Big board picker offers General, Dan's, JP's and Draft Craft Combined (average of the two ranks; a
+  player only one of them ranked counts as just past the end of the other's list). After a board's ranked players
+  it continues in General board order. Only boards that have loaded are offered.
+
 Everything is served by GitHub Pages from this repo, at https://draftcraftpod.github.io/draft-craft-mock-draft/
 (`dist/` for the app, `live/` for the data). After changing the app, run the build and push; Pages republishes in
 about a minute, and browsers may hold the old copy for up to 10 minutes.

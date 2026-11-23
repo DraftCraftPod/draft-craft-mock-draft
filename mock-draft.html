@@ -755,7 +755,87 @@ function withPosRanks(list) {
 }
 let PLAYERS = withPosRanks(defaultPlayers());
 let boardSource = DEFAULT_SOURCE;
-const S = { phase: "setup", user: new Set(), priority: "balanced", speed: "fast", rounds: 3, chart: "consensus", futures: true, cpuOffers: true,
+
+/* ===================== BIG BOARDS ===================== */
+// Dan's and JP's boards come from their Google Sheets via live/boards.json (refreshed daily). Each entry is
+// { key, name, pos, school, rank (null = listed but not ranked), posRank, g (index on the General board or null) }.
+// A personal board is its ranked players in order, then everyone else in General board order.
+let LIVE_BOARDS = {};
+const BOARD_LABELS = { general: "General board", dan: "Dan's board", jp: "JP's board", combined: "Draft Craft Combined" };
+const boardChoices = () => ["general", ...["dan", "jp"].filter(k => LIVE_BOARDS[k]), ...(LIVE_BOARDS.dan && LIVE_BOARDS.jp ? ["combined"] : [])];
+const sheetId = e => e.g != null ? "p" + (e.g + 1) : "x-" + e.key;
+// Each personal board's overall ranks by player id, shown in every profile
+function personalRanks() {
+  return Object.fromEntries(["dan", "jp"].filter(k => LIVE_BOARDS[k]).map(k =>
+    [BOARD_LABELS[k], new Map(LIVE_BOARDS[k].players.filter(e => e.rank).map(e => [sheetId(e), e.rank]))]));
+}
+function withBoardRanks(list) {
+  const ranks = personalRanks();
+  list.forEach(p => { p.boards = { ...p.boards }; for (const [label, m] of Object.entries(ranks)) p.boards[label] = m.get(p.id) || null; });
+  return list;
+}
+function buildBoard(key) {
+  const gen = defaultPlayers();
+  const extra = e => ({ id: sheetId(e), rank: 0, name: e.name, pos: e.pos, school: e.school, ht: 0, wt: 0, cls: "", boards: {} });
+  const base = e => e.g != null && gen[e.g] ? { ...gen[e.g], pos: e.pos } : extra(e);
+  let top = [], sheetEntries = [];
+  if (key === "dan" || key === "jp") {
+    sheetEntries = LIVE_BOARDS[key].players;
+    top = sheetEntries.filter(e => e.rank).sort((a, b) => a.rank - b.rank).map(e => ({ ...base(e), posRank: e.posRank || 0 }));
+  } else if (key === "combined") {
+    const d = LIVE_BOARDS.dan.players.filter(e => e.rank), j = LIVE_BOARDS.jp.players.filter(e => e.rank);
+    const rows = new Map();
+    for (const [list, side] of [[d, "d"], [j, "j"]]) for (const e of list) {
+      const id = sheetId(e), r = rows.get(id) || { e, d: null, j: null };
+      r[side] = e.rank; rows.set(id, r);
+    }
+    // A player only one of you ranked counts as just past the end of the other's list
+    const score = r => ((r.d ?? d.length + 1) + (r.j ?? j.length + 1)) / 2;
+    top = [...rows.values()].sort((a, b) => score(a) - score(b) || Math.min(a.d ?? 1e9, a.j ?? 1e9) - Math.min(b.d ?? 1e9, b.j ?? 1e9) || (a.e.g ?? 1e9) - (b.e.g ?? 1e9))
+      .map(r => ({ ...base(r.e), posRank: 0 }));
+    sheetEntries = [...LIVE_BOARDS.dan.players, ...LIVE_BOARDS.jp.players];
+  }
+  const used = new Set(top.map(p => p.id));
+  const sheetPr = new Map(key === "combined" ? [] : sheetEntries.filter(e => !e.rank && e.posRank).map(e => [sheetId(e), e.posRank]));
+  const rest = gen.filter(p => !used.has(p.id)).map(p => ({ ...p, posRank: sheetPr.get(p.id) || 0 }));
+  const seen = new Set([...used, ...rest.map(p => p.id)]);
+  const tail = [];
+  for (const e of sheetEntries) {
+    const id = sheetId(e);
+    if (e.rank || seen.has(id)) continue;
+    seen.add(id); tail.push({ ...extra(e), posRank: sheetPr.get(id) || 0 });
+  }
+  const list = [...top, ...rest, ...tail];
+  list.forEach((p, i) => p.rank = i + 1);
+  // Position ranks: the sheet's own where given, then numbered on from the highest one used at that position
+  const next = {};
+  list.forEach(p => { if (p.posRank) next[p.pos] = Math.max(next[p.pos] || 0, p.posRank); });
+  list.forEach(p => { if (!p.posRank) p.posRank = next[p.pos] = (next[p.pos] || 0) + 1; });
+  return withBoardRanks(list);
+}
+function useBoard(key) {
+  if (!boardChoices().includes(key)) key = "general";
+  S.board = key;
+  PLAYERS = key === "general" ? withBoardRanks(withPosRanks(defaultPlayers())) : buildBoard(key);
+  boardSource = key === "general" ? DEFAULT_SOURCE : `${BOARD_LABELS[key]}, ${PLAYERS.length} prospects`;
+}
+// Accept only well-formed boards; a bad file leaves the current ones in place
+function applyBoards(body) {
+  const boards = body && body.boards;
+  if (!boards || typeof boards !== "object") return;
+  const okEntry = e => e && typeof e.name === "string" && typeof e.key === "string" && POSITIONS.includes(e.pos) &&
+    (e.rank === null || Number.isInteger(e.rank)) && (e.g === null || (Number.isInteger(e.g) && e.g >= 0 && e.g < BOARD.length));
+  const next = {};
+  for (const k of ["dan", "jp"]) {
+    const b = boards[k];
+    if (b && Array.isArray(b.players) && b.players.filter(e => e.rank).length >= 40 && b.players.every(okEntry)) next[k] = b;
+  }
+  const changed = JSON.stringify(next) !== JSON.stringify(LIVE_BOARDS);
+  LIVE_BOARDS = next;
+  if (!changed) return;
+  if (S.phase === "setup" && (S.board !== "custom")) { useBoard(S.board); renderSetup(); }
+}
+const S = { phase: "setup", board: "general", user: new Set(), priority: "balanced", speed: "fast", rounds: 3, chart: "consensus", futures: true, cpuOffers: true,
   picks: [], future: [], running: false, posFilter: new Set(), sortBy: "overall", query: "", boardView: "all", trades: [] };
 let timer = null;
 
@@ -959,6 +1039,8 @@ function renderSetup() {
     </button>`).join("")}
   </div>
   <div class="options">
+    ${boardChoices().length > 1 ? `<label class="field"><span class="label">Big board</span>
+      <select id="o-board">${boardChoices().map(k => `<option value="${k}" ${S.board === k ? "selected" : ""}>${BOARD_LABELS[k]}</option>`).join("")}${S.board === "custom" ? `<option value="custom" selected>Your pasted board</option>` : ""}</select></label>` : ""}
     <label class="field"><span class="label">CPU priorities</span>
       <select id="o-priority">${Object.entries(PRIORITY).map(([k, v]) => `<option value="${k}" ${S.priority === k ? "selected" : ""}>${v.label}</option>`).join("")}</select></label>
     <label class="field"><span class="label">CPU speed</span>
@@ -981,6 +1063,8 @@ function renderSetup() {
   </details>`;
   app.querySelectorAll(".team-card").forEach(b => b.onclick = () => { const t = b.dataset.team; S.user.has(t) ? S.user.delete(t) : S.user.add(t); renderSetup(); });
   app.querySelector("#all").onclick = () => { S.user = all ? new Set() : new Set(Object.keys(TEAMS)); renderSetup(); };
+  const ob = app.querySelector("#o-board");
+  if (ob) ob.onchange = e => { if (e.target.value !== "custom") { useBoard(e.target.value); renderSetup(); toast(`${BOARD_LABELS[S.board]} loaded`); } };
   app.querySelector("#o-priority").onchange = e => S.priority = e.target.value;
   app.querySelector("#o-speed").onchange = e => S.speed = e.target.value;
   app.querySelector("#o-rounds").onchange = e => S.rounds = +e.target.value;
@@ -991,7 +1075,7 @@ function renderSetup() {
   app.querySelector("#load").onclick = loadCsv;
   app.querySelectorAll("[data-open-mock]").forEach(b => b.onclick = () => openMock(+b.dataset.openMock));
   app.querySelectorAll("[data-del-mock]").forEach(b => b.onclick = () => deleteMock(+b.dataset.delMock));
-  app.querySelector("#sample").onclick = () => { PLAYERS = withPosRanks(defaultPlayers()); boardSource = DEFAULT_SOURCE; renderSetup(); toast("General board restored"); };
+  app.querySelector("#sample").onclick = () => { useBoard("general"); renderSetup(); toast("General board restored"); };
 }
 function loadCsv() {
   const lines = app.querySelector("#csv").value.split(/\n/).map(l => l.trim()).filter(Boolean);
@@ -1003,7 +1087,7 @@ function loadCsv() {
   });
   const msg = app.querySelector("#csv-msg");
   if (out.length < 40) { msg.textContent = `Need at least 40 valid lines (got ${out.length}).${bad.length ? ` Check lines ${bad.slice(0, 8).join(", ")}.` : ""}`; return; }
-  PLAYERS = withPosRanks(out); boardSource = `Your board (${out.length} prospects)`;
+  PLAYERS = withPosRanks(out); boardSource = `Your board (${out.length} prospects)`; S.board = "custom";
   renderSetup(); toast(`Loaded ${out.length} prospects${bad.length ? `, skipped ${bad.length} lines` : ""}`);
 }
 function startRoom() {
@@ -1139,9 +1223,9 @@ function openProfile(id) {
     <div class="facts"><div><span class="label">Height</span><b>${ft(p.ht)}</b></div><div><span class="label">Weight</span><b class="num">${p.wt || "—"}</b></div><div><span class="label">Class</span><b>${p.cls || "—"}</b></div><div><span class="label">Pos rank</span><b>${p.pos}${p.posRank}</b></div></div>
     <h3 style="margin-top:16px;font-size:18px">Rankings</h3>
     <table class="ranks"><tr><th class="label">Board</th><th class="label">Overall</th></tr>
-      <tr><td>This simulator</td><td class="num">#${p.rank}</td></tr>
-      ${Object.entries(p.boards).map(([k, v]) => `<tr><td>${k}</td><td class="num">${v ? "#" + v : "Not ranked"}</td></tr>`).join("")}</table>
-    <p class="note" style="margin-top:16px">${Object.keys(p.boards).length ? "Consensus rank from NFL Mock Draft Database (top 100 only). Height, weight and class from DraftTek." : "From your pasted board."}</p>
+      <tr><td>${S.board === "general" ? "General board" : esc(BOARD_LABELS[S.board] || "Your board")} (in use)</td><td class="num">#${p.rank}</td></tr>
+      ${Object.entries(p.boards).filter(([k]) => k !== BOARD_LABELS[S.board]).map(([k, v]) => `<tr><td>${k}</td><td class="num">${v ? "#" + v : "Not ranked"}</td></tr>`).join("")}</table>
+    <p class="note" style="margin-top:16px">${p.id.startsWith("x-") ? "Not on the General board yet, so there's no height, weight or class." : Object.keys(p.boards).length ? "Consensus rank from NFL Mock Draft Database (top 100 only). Height, weight and class from DraftTek." : "From your pasted board."}</p>
     ${canDraft ? `<button class="btn primary" style="width:100%;margin-top:8px;padding:12px" id="pdraft">Draft ${esc(p.name)} at #${pk.no}</button>` : ""}
   </aside>`;
   bindOverlay();
