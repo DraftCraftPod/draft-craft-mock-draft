@@ -1,10 +1,5 @@
 {
  "_about": "Height (inches), weight and class for players on Dan's or JP's board who aren't on the General board. Keyed by name in lowercase letters only (Scooter Jackson -> scooterjackson).",
- "scooterjackson": {
-  "ht": 71,
-  "wt": 191,
-  "cls": "Senior"
- },
  "aidensullivan": {
   "ht": 73,
   "wt": 230,
@@ -105,7 +100,7 @@
   "wt": 234,
   "cls": "Senior"
  },
- "dorianflemming": {
+ "dorianfleming": {
   "ht": 75,
   "wt": 245,
   "cls": "RS Junior"
@@ -115,11 +110,11 @@
   "wt": 229,
   "cls": "Senior"
  },
- "dwaynemcdougall": {
+ "dwaynemcdougle": {
   "ht": 71,
   "wt": 210
  },
- "dylanlabarbara": {
+ "dylanlabarbera": {
   "ht": 73,
   "wt": 248,
   "cls": "Senior"
@@ -243,7 +238,7 @@
   "wt": 235,
   "cls": "Fifth Year"
  },
- "kenyonaugurs": {
+ "kenyonagurs": {
   "ht": 76,
   "wt": 255
  },
@@ -297,17 +292,17 @@
   "wt": 230,
   "cls": "Fifth Year"
  },
- "mchaleboley": {
+ "mckaleboley": {
   "ht": 77,
   "wt": 329,
   "cls": "Fifth Year"
  },
- "mekhiflowers": {
+ "mehkiflowers": {
   "ht": 72,
   "wt": 200,
   "cls": "RS Senior"
  },
- "michaelkillbane": {
+ "michaelkilbane": {
   "ht": 77,
   "wt": 280,
   "cls": "Senior"
@@ -356,6 +351,11 @@
   "wt": 256,
   "cls": "Graduate"
  },
+ "scooterjackson": {
+  "ht": 71,
+  "wt": 191,
+  "cls": "Senior"
+ },
  "shazzpreston": {
   "ht": 72,
   "wt": 205,
@@ -366,12 +366,12 @@
   "wt": 190,
   "cls": "Senior"
  },
- "trentfrailey": {
+ "trentfraley": {
   "ht": 73,
   "wt": 306,
   "cls": "RS Senior"
  },
- "trequonfeggins": {
+ "trequonfegans": {
   "ht": 73,
   "wt": 190,
   "cls": "RS Senior"

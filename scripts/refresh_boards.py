@@ -56,6 +56,18 @@ SCHOOL_FIX = {"California Los Angeles": "UCLA", "Southern California": "USC", "L
               "Alabama at Birmingham": "UAB", "Texas at El Paso": "UTEP", "Texas at San Antonio": "UTSA",
               "Louisiana Monroe": "ULM", "Florida International": "FIU", "Florida Atlantic": "FAU", "Hawai'i": "Hawaii",
               "Powder Puff": "—"}
+# Sheet spellings that differ from the official roster, mapped to the official name (matched ignoring case and punctuation)
+NAME_FIX = {
+    "Trent Frailey": "Trent Fraley",
+    "Dylan Labarbara": "Dylan LaBarbera",
+    "Michael Killbane": "Michael Kilbane",
+    "Dwayne McDougall III": "Dwayne McDougle III",
+    "Kenyon Augurs": "Kenyon Agurs",
+    "Tre'Quon Feggins": "Tre'Quon Fegans",
+    "Dorian Flemming": "Dorian Fleming",
+    "McHale Boley": "McKale Boley",
+    "Mekhi Flowers": "Mehki Flowers",
+}
 # Rows sharing one OR value this many times or more are the sheet's "not ranked yet" bucket, not a tie
 UNRANKED_BUCKET = 6
 # Overall rank column names, in order of preference ("B" is JP's board column)
@@ -66,6 +78,8 @@ def norm(name):
     name = re.sub(r"\b(jr|sr|ii|iii|iv|v)\b\.?", "", name.lower())
     return re.sub(r"[^a-z]", "", name)
 
+
+NAME_FIX = {norm(k): v for k, v in NAME_FIX.items()}
 
 GENERAL = {}
 for i, b in enumerate(BOARD):
@@ -142,6 +156,7 @@ def parse_board(text):
     for n, r in enumerate(rows[hn + 1:]):
         name = get(r, c_name) if c_name is not None else f"{get(r, c_first)} {get(r, c_last)}"
         name = " ".join(name.split())
+        name = NAME_FIX.get(norm(name), name)
         if not name or norm(name) in seen:
             continue
         seen.add(norm(name))
