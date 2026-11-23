@@ -1,4 +1,409 @@
 {
-  "_about": "Height (inches), weight and class for players on Dan's or JP's board who aren't on the General board. Keyed by name in lowercase letters only (Scooter Jackson -> scooterjackson).",
-  "scooterjackson": {"ht": 71, "wt": 191, "cls": "Senior"}
+ "_about": "Height (inches), weight and class for players on Dan's or JP's board who aren't on the General board. Keyed by name in lowercase letters only (Scooter Jackson -> scooterjackson).",
+ "scooterjackson": {
+  "ht": 71,
+  "wt": 191,
+  "cls": "Senior"
+ },
+ "aidensullivan": {
+  "ht": 73,
+  "wt": 230,
+  "cls": "Senior"
+ },
+ "ajvinson": {
+  "ht": 77,
+  "wt": 305,
+  "cls": "Senior"
+ },
+ "alexmclaughlin": {
+  "ht": 74,
+  "wt": 205,
+  "cls": "Senior"
+ },
+ "amierboyd": {
+  "ht": 74,
+  "wt": 185,
+  "cls": "Fifth Year"
+ },
+ "baronhopson": {
+  "ht": 73,
+  "wt": 222,
+  "cls": "Graduate"
+ },
+ "beausparks": {
+  "ht": 71,
+  "wt": 181,
+  "cls": "Senior"
+ },
+ "bishopthomas": {
+  "ht": 73,
+  "wt": 297,
+  "cls": "Fifth Year"
+ },
+ "brandonsneh": {
+  "ht": 78,
+  "wt": 315,
+  "cls": "RS Senior"
+ },
+ "braydonnelson": {
+  "ht": 76,
+  "wt": 327,
+  "cls": "Junior"
+ },
+ "calebhawkins": {
+  "ht": 72,
+  "wt": 219,
+  "cls": "Sophomore"
+ },
+ "charlesjagusah": {
+  "ht": 77,
+  "wt": 330,
+  "cls": "Senior"
+ },
+ "chasehendricks": {
+  "ht": 72,
+  "wt": 195,
+  "cls": "Senior"
+ },
+ "chibbynwajuaku": {
+  "ht": 74,
+  "wt": 246,
+  "cls": "RS Senior"
+ },
+ "colemancauley": {
+  "ht": 73,
+  "wt": 227,
+  "cls": "Senior"
+ },
+ "coletabb": {
+  "ht": 68,
+  "wt": 200,
+  "cls": "Junior"
+ },
+ "craigroyal": {
+  "ht": 74,
+  "wt": 185,
+  "cls": "Senior"
+ },
+ "danielwingate": {
+  "ht": 77,
+  "wt": 238,
+  "cls": "Senior"
+ },
+ "dannyscudero": {
+  "ht": 69,
+  "wt": 175,
+  "cls": "Senior"
+ },
+ "devondampier": {
+  "ht": 71,
+  "wt": 210,
+  "cls": "Senior"
+ },
+ "donniesmith": {
+  "ht": 76,
+  "wt": 234,
+  "cls": "Senior"
+ },
+ "dorianflemming": {
+  "ht": 75,
+  "wt": 245,
+  "cls": "RS Junior"
+ },
+ "drewspinogatti": {
+  "ht": 72,
+  "wt": 229,
+  "cls": "Senior"
+ },
+ "dwaynemcdougall": {
+  "ht": 71,
+  "wt": 210
+ },
+ "dylanlabarbara": {
+  "ht": 73,
+  "wt": 248,
+  "cls": "Senior"
+ },
+ "eastonmesser": {
+  "ht": 69,
+  "wt": 190,
+  "cls": "Fifth Year"
+ },
+ "ebubedikennabugwu": {
+  "ht": 74,
+  "wt": 310,
+  "cls": "Senior"
+ },
+ "elifinley": {
+  "ht": 78,
+  "wt": 246,
+  "cls": "Senior"
+ },
+ "elijahpritchett": {
+  "ht": 78,
+  "wt": 325
+ },
+ "elijahreed": {
+  "ht": 75,
+  "wt": 200,
+  "cls": "Senior"
+ },
+ "ethanwesloski": {
+  "ht": 73,
+  "wt": 234,
+  "cls": "RS Senior"
+ },
+ "gideonlampron": {
+  "ht": 72,
+  "wt": 220,
+  "cls": "Fifth Year"
+ },
+ "giolopez": {
+  "ht": 72,
+  "wt": 220,
+  "cls": "RS Junior"
+ },
+ "iversonhooks": {
+  "ht": 70,
+  "wt": 170,
+  "cls": "Fifth Year"
+ },
+ "jahiemwhite": {
+  "ht": 67,
+  "wt": 190,
+  "cls": "Senior"
+ },
+ "jaidenthomas": {
+  "ht": 69,
+  "wt": 195,
+  "cls": "Senior"
+ },
+ "jakeguarnera": {
+  "ht": 75,
+  "wt": 315,
+  "cls": "Junior"
+ },
+ "jameljohnson": {
+  "ht": 73,
+  "wt": 205,
+  "cls": "Senior"
+ },
+ "jasononye": {
+  "ht": 77,
+  "wt": 295,
+  "cls": "Sixth Year"
+ },
+ "jaylenlewis": {
+  "ht": 71,
+  "wt": 187,
+  "cls": "RS Senior"
+ },
+ "jimmywyrick": {
+  "ht": 70,
+  "wt": 195,
+  "cls": "Graduate"
+ },
+ "joecotton": {
+  "ht": 78,
+  "wt": 320,
+  "cls": "Fifth Year"
+ },
+ "joehjelle": {
+  "ht": 75,
+  "wt": 305,
+  "cls": "Graduate"
+ },
+ "jojojohnson": {
+  "ht": 72,
+  "wt": 188,
+  "cls": "Graduate"
+ },
+ "jordanmarshall": {
+  "ht": 70,
+  "wt": 220,
+  "cls": "Junior"
+ },
+ "jordanmcallister": {
+  "ht": 75,
+  "wt": 243,
+  "cls": "RS Junior"
+ },
+ "justineaglin": {
+  "ht": 73,
+  "wt": 175,
+  "cls": "Senior"
+ },
+ "kalencarroll": {
+  "ht": 73,
+  "wt": 185,
+  "cls": "Fifth Year"
+ },
+ "keatonthomas": {
+  "ht": 73,
+  "wt": 235,
+  "cls": "Fifth Year"
+ },
+ "kenyonaugurs": {
+  "ht": 76,
+  "wt": 255
+ },
+ "kevinjennings": {
+  "ht": 72,
+  "wt": 195,
+  "cls": "Fifth Year"
+ },
+ "keyjuanbrown": {
+  "ht": 70,
+  "wt": 215,
+  "cls": "Senior"
+ },
+ "ktseay": {
+  "ht": 74,
+  "wt": 190,
+  "cls": "Senior"
+ },
+ "kvonsherman": {
+  "ht": 75,
+  "wt": 240,
+  "cls": "Senior"
+ },
+ "leightonjones": {
+  "ht": 74,
+  "wt": 288,
+  "cls": "Senior"
+ },
+ "lewiscarter": {
+  "ht": 72,
+  "wt": 225,
+  "cls": "Senior"
+ },
+ "luckysutton": {
+  "ht": 73,
+  "wt": 225,
+  "cls": "Senior"
+ },
+ "malachidavis": {
+  "ht": 76,
+  "wt": 255,
+  "cls": "Senior"
+ },
+ "marquisgracial": {
+  "ht": 76,
+  "wt": 315,
+  "cls": "Fifth Year"
+ },
+ "maverickbaranowski": {
+  "ht": 74,
+  "wt": 230,
+  "cls": "Fifth Year"
+ },
+ "mchaleboley": {
+  "ht": 77,
+  "wt": 329,
+  "cls": "Fifth Year"
+ },
+ "mekhiflowers": {
+  "ht": 72,
+  "wt": 200,
+  "cls": "RS Senior"
+ },
+ "michaelkillbane": {
+  "ht": 77,
+  "wt": 280,
+  "cls": "Senior"
+ },
+ "nickminicucci": {
+  "ht": 74,
+  "wt": 215,
+  "cls": "Senior"
+ },
+ "parkerkingston": {
+  "ht": 71,
+  "wt": 185
+ },
+ "patrickovermyer": {
+  "ht": 77,
+  "wt": 240,
+  "cls": "Senior"
+ },
+ "quandariuskeyes": {
+  "ht": 73,
+  "wt": 185,
+  "cls": "Senior"
+ },
+ "rashardperry": {
+  "ht": 75,
+  "wt": 295,
+  "cls": "Senior"
+ },
+ "robertwright": {
+  "ht": 77,
+  "wt": 294,
+  "cls": "RS Junior"
+ },
+ "rolanfullwood": {
+  "ht": 78,
+  "wt": 320,
+  "cls": "Senior"
+ },
+ "rondoporter": {
+  "ht": 72,
+  "wt": 295,
+  "cls": "Senior"
+ },
+ "ryanhenderson": {
+  "ht": 75,
+  "wt": 256,
+  "cls": "Graduate"
+ },
+ "shazzpreston": {
+  "ht": 72,
+  "wt": 205,
+  "cls": "Graduate"
+ },
+ "simeonharris": {
+  "ht": 72,
+  "wt": 190,
+  "cls": "Senior"
+ },
+ "trentfrailey": {
+  "ht": 73,
+  "wt": 306,
+  "cls": "RS Senior"
+ },
+ "trequonfeggins": {
+  "ht": 73,
+  "wt": 190,
+  "cls": "RS Senior"
+ },
+ "tristanbounds": {
+  "ht": 80,
+  "wt": 320,
+  "cls": "Sixth Year"
+ },
+ "turborichard": {
+  "ht": 69,
+  "wt": 207,
+  "cls": "Junior"
+ },
+ "tylermartin": {
+  "ht": 74,
+  "wt": 240,
+  "cls": "Graduate"
+ },
+ "waymondjordan": {
+  "ht": 70,
+  "wt": 210,
+  "cls": "RS Senior"
+ },
+ "wendellmoe": {
+  "ht": 74,
+  "wt": 330,
+  "cls": "Fifth Year"
+ },
+ "zekedurhamcampbell": {
+  "ht": 76,
+  "wt": 259,
+  "cls": "RS Senior"
+ }
 }
