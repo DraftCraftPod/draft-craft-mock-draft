@@ -67,6 +67,7 @@ NAME_FIX = {
     "Dorian Flemming": "Dorian Fleming",
     "McHale Boley": "McKale Boley",
     "Mekhi Flowers": "Mehki Flowers",
+    "Gideon Lampron": "Gideon ESPN Lampron",  # yes, really
 }
 # Rows sharing one OR value this many times or more are the sheet's "not ranked yet" bucket, not a tie
 UNRANKED_BUCKET = 6
