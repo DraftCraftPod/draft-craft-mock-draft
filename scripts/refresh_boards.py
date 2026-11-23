@@ -1,7 +1,7 @@
 """Refresh live/boards.json from Dan's and JP's Google Sheets big boards.
 
 Run daily by .github/workflows/refresh-live.yml. Each sheet is published to the web as CSV (2027 tab).
-Columns are found by header name, so the sheet layout can change: OR/Overall/Rank, Player or First Name + Last Name,
+Columns are found by header name, so the sheet layout can change: OR/Overall/Rank/B (board), Player/Name or First Name + Last Name,
 POS/Pos., optional School/College/University, optional PR (position rank).
 
 Players are matched to the General board (data/prospects/board.json, the page's BOARD) by name, so they keep
@@ -29,7 +29,8 @@ BOARD = json.loads((ROOT / "data/prospects/board.json").read_text())
 SHEETS = {
     "dan": {"label": "Dan's board", "credit": "Dan, Draft Craft podcast", "link": "https://www.draftcraftpod.com",
             "csv": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRW-Z8YnL-PfFLpZ0T01ZfeEz_BHpwZDYSw50zxOzuaB3x-SSr5byinrAmdOcDjUY5pYTvD_7dAOnT7/pub?gid=845914004&single=true&output=csv"},
-    # "jp": {"label": "JP's board", "credit": "JP, Draft Craft podcast", "link": "https://www.draftcraftpod.com", "csv": "<published CSV link>"},
+    "jp": {"label": "JP's board", "credit": "JP, Draft Craft podcast", "link": "https://www.draftcraftpod.com",
+           "csv": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRA96EEUTsvqFa_KVlU5u5osmWiVDwytnwDXb3FKZvpcnkmw6c7XtAXBsO5thRL13UopFEUQcBEaRMY/pub?gid=1120011587&single=true&output=csv"},
     # Guest board example:
     # "smith": {"label": "Sam Smith's board", "credit": "Sam Smith, The Draft Show", "link": "https://example.com", "csv": "<published CSV link>"},
 }
@@ -55,6 +56,8 @@ SCHOOL_FIX = {"California Los Angeles": "UCLA", "Southern California": "USC", "L
               "Powder Puff": "—"}
 # Rows sharing one OR value this many times or more are the sheet's "not ranked yet" bucket, not a tie
 UNRANKED_BUCKET = 6
+# Overall rank column names, in order of preference ("B" is JP's board column)
+RANK_COLS = ("or", "overall", "rank", "b", "board")
 
 
 def norm(name):
@@ -105,9 +108,9 @@ def short_school(s):
 def find_header(rows):
     for n, row in enumerate(rows[:10]):
         cells = [c.strip().lower() for c in row]
-        if any(c in ("or", "overall", "rank") for c in cells) and any(c in ("pos", "pos.", "position") for c in cells):
+        if any(c in RANK_COLS for c in cells) and any(c in ("pos", "pos.", "position") for c in cells):
             return n, cells
-    raise ValueError("no header row with OR/Overall/Rank and POS found")
+    raise ValueError("no header row with OR/Overall/Rank/B and POS found")
 
 
 def col(cells, *names, contains=None):
@@ -124,7 +127,7 @@ def col(cells, *names, contains=None):
 def parse_board(text):
     rows = list(csv.reader(io.StringIO(text)))
     hn, cells = find_header(rows)
-    c_or = col(cells, "or", "overall", "rank")
+    c_or = col(cells, *RANK_COLS)
     c_pos = col(cells, "pos.", "pos", "position")
     c_pr = col(cells, "pr", "pos rank", "position rank")
     c_name, c_first, c_last = col(cells, "player", "name"), col(cells, "first name"), col(cells, "last name")
@@ -158,6 +161,11 @@ def parse_board(text):
     bucket = {v for v, k in Counter(e["or"] for e in entries if e["or"] is not None).items() if k >= UNRANKED_BUCKET}
     ranked = sorted((e for e in entries if e["or"] is not None and e["or"] not in bucket), key=lambda e: (e["or"], e["row"]))
     others = [e for e in entries if e not in ranked]
+    # A position rank repeated within a position (JP gives every unranked RB "20") is a fill-in, not a rank (unranked players only)
+    pr_count = Counter((e["pos"], e["pr"]) for e in others if e["pr"] is not None)
+    for e in others:
+        if pr_count[(e["pos"], e["pr"])] >= 3:
+            e["pr"] = None
     if len(ranked) < 40:
         raise ValueError(f"only {len(ranked)} ranked players")
     skipped = [e["name"] for e in ranked + others if not e["pos"]]
