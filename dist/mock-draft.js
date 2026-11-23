@@ -570,7 +570,9 @@ function withBoardRanks(list) {
 }
 function buildBoard(key) {
   const gen = defaultPlayers();
-  const extra = e => ({ id: sheetId(e), rank: 0, name: e.name, pos: e.pos, school: e.school, ht: 0, wt: 0, cls: "", boards: {} });
+  const num = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi ? v : 0;
+  const extra = e => ({ id: sheetId(e), rank: 0, name: e.name, pos: e.pos, school: e.school, ht: num(e.ht, 60, 90), wt: num(e.wt, 150, 400),
+    cls: typeof e.cls === "string" && /^[A-Za-z ]{1,20}$/.test(e.cls) ? e.cls : "", boards: {} });
   const base = e => e.g != null && gen[e.g] ? { ...gen[e.g], pos: e.pos } : extra(e);
   let top = [], sheetEntries = [];
   if (LIVE_BOARDS[key]) {
@@ -1024,7 +1026,7 @@ function openProfile(id) {
     <table class="ranks"><tr><th class="label">Board</th><th class="label">Overall</th></tr>
       <tr><td>${esc(BOARD_LABELS[S.board] || "Your board")} (in use)</td><td class="num">#${p.rank}</td></tr>
       ${Object.entries(p.boards).filter(([k]) => k !== BOARD_LABELS[S.board]).map(([k, v]) => `<tr><td>${linkHtml([k, CREDIT_LINKS[k]])}</td><td class="num">${v ? "#" + v : "Not ranked"}</td></tr>`).join("")}</table>
-    <p class="note" style="margin-top:16px">${p.id.startsWith("x-") ? "Not on the General board yet, so there's no height, weight or class." : Object.keys(p.boards).length ? "Consensus rank from NFL Mock Draft Database (top 100 only). Height, weight and class from DraftTek." : "From your pasted board."}</p>
+    <p class="note" style="margin-top:16px">${p.id.startsWith("x-") ? (p.ht ? "Not on the General board yet. Height, weight and class added by Draft Craft." : "Not on the General board yet, so there's no height, weight or class.") : Object.keys(p.boards).length ? "Consensus rank from NFL Mock Draft Database (top 100 only). Height, weight and class from DraftTek." : "From your pasted board."}</p>
     ${canDraft ? `<button class="btn primary" style="width:100%;margin-top:8px;padding:12px" id="pdraft">Draft ${esc(p.name)} at #${pk.no}</button>` : ""}
   </aside>`;
   bindOverlay();

@@ -22,6 +22,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LIVE = ROOT / "live"
 BOARD = json.loads((ROOT / "data/prospects/board.json").read_text())
+# Height, weight and class for sheet players who aren't on the General board, keyed like norm(name)
+EXTRA = {k: v for k, v in json.loads((ROOT / "data/prospects/extra.json").read_text()).items() if not k.startswith("_")}
 
 # One entry per board. "csv" is the sheet's File > Share > Publish to web link (CSV, the 2027 tab).
 # "credit" and "link" are shown with the board on the site: who made it, and where to find them (https only).
@@ -169,12 +171,13 @@ def parse_board(text):
     if len(ranked) < 40:
         raise ValueError(f"only {len(ranked)} ranked players")
     skipped = [e["name"] for e in ranked + others if not e["pos"]]
-    players = []
-    for rank, e in enumerate([e for e in ranked if e["pos"]], start=1):
-        players.append({"key": norm(e["name"]), "name": e["name"], "pos": e["pos"], "school": e["school"], "rank": rank, "posRank": e["pr"], "g": e["g"]})
-    for e in others:
-        if e["pos"]:
-            players.append({"key": norm(e["name"]), "name": e["name"], "pos": e["pos"], "school": e["school"], "rank": None, "posRank": e["pr"], "g": e["g"]})
+    def player(e, rank):
+        p = {"key": norm(e["name"]), "name": e["name"], "pos": e["pos"], "school": e["school"], "rank": rank, "posRank": e["pr"], "g": e["g"]}
+        if e["g"] is None and p["key"] in EXTRA:
+            p.update({k: EXTRA[p["key"]][k] for k in ("ht", "wt", "cls") if k in EXTRA[p["key"]]})
+        return p
+    players = [player(e, rank) for rank, e in enumerate([e for e in ranked if e["pos"]], start=1)]
+    players += [player(e, None) for e in others if e["pos"]]
     return players, skipped
 
 
@@ -191,7 +194,7 @@ def main():
             failed = True
             continue
         ranked = [p for p in players if p["rank"]]
-        missing = [p for p in ranked if p["g"] is None]
+        missing = [p for p in ranked if p["g"] is None and "ht" not in p]
         print(f"{label}: {len(ranked)} ranked, {len(players) - len(ranked)} unranked, {len(missing)} ranked players not on the General board")
         report.append(f"### {label}\n{len(ranked)} ranked players, {len(players) - len(ranked)} listed without an overall rank.\n")
         if missing:

@@ -53,7 +53,8 @@ Big boards (`live/boards.json`):
 - Rows that share one OR value six or more times (e.g. a "273" fill-in) count as listed but not ranked.
 - Players are matched to the General board by name, or by a close spelling at the same school and position, to
   keep height, weight and class. The job's run page on GitHub (Actions → the run → Summary) lists ranked players
-  it couldn't match.
+  it couldn't match. For a player who really isn't on the General board, add his height (inches), weight and class
+  to `data/prospects/extra.json` (e.g. Scooter Jackson); he then shows them on every board and drops off that list.
 - The page's Big board picker offers General, Dan's, JP's and Draft Craft Combined (average of the two ranks; a
   player only one of them ranked counts as just past the end of the other's list). After a board's ranked players
   it continues in General board order. Only boards that have loaded are offered.

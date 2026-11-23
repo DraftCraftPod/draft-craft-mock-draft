@@ -1,0 +1,4 @@
+{
+  "_about": "Height (inches), weight and class for players on Dan's or JP's board who aren't on the General board. Keyed by name in lowercase letters only (Scooter Jackson -> scooterjackson).",
+  "scooterjackson": {"ht": 71, "wt": 191, "cls": "Senior"}
+}
