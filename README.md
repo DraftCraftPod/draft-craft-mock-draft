@@ -47,7 +47,8 @@ Live data on the website:
 Big boards (`live/boards.json`):
 
 - `scripts/refresh_boards.py` (same daily job) reads Dan's and JP's Google Sheets, published to the web as CSV.
-  The links are in `SHEETS` at the top of the script. Columns are found by header name (OR, First/Last Name or
+  The links are in `SHEETS` at the top of the script, each with a `credit` and `link` shown with the board on the
+  site (in the picker, under the prospect list, and in player profiles). Guest boards are added the same way. Columns are found by header name (OR, First/Last Name or
   Player, Pos., College/School, PR), so the sheets can be rearranged.
 - Rows that share one OR value six or more times (e.g. a "273" fill-in) count as listed but not ranked.
 - Players are matched to the General board by name, or by a close spelling at the same school and position, to

@@ -137,6 +137,10 @@
 #dc-md .g-b { color: var(--field); }
 #dc-md .g-c { color: var(--warn); }
 #dc-md .g-d { color: var(--bad); }
+#dc-md .options:has(.credit) { row-gap: 26px; }
+#dc-md .field:has(.credit) { position: relative; }
+#dc-md .field .credit { position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#dc-md .field .credit a, #dc-md .ranks a, #dc-md .panel .note a { color: var(--field); }
 #dc-md .recent { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 #dc-md .recent-list { display: grid; gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
 #dc-md .recent-item { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; background: var(--surface); }

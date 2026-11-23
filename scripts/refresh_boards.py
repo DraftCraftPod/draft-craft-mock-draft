@@ -23,9 +23,15 @@ ROOT = Path(__file__).resolve().parent.parent
 LIVE = ROOT / "live"
 BOARD = json.loads((ROOT / "data/prospects/board.json").read_text())
 
+# One entry per board. "csv" is the sheet's File > Share > Publish to web link (CSV, the 2027 tab).
+# "credit" and "link" are shown with the board on the site: who made it, and where to find them (https only).
+# Keys are short lowercase ids; "dan" and "jp" together also make the Draft Craft Combined board.
 SHEETS = {
-    "dan": ("Dan's board", "https://docs.google.com/spreadsheets/d/e/2PACX-1vRW-Z8YnL-PfFLpZ0T01ZfeEz_BHpwZDYSw50zxOzuaB3x-SSr5byinrAmdOcDjUY5pYTvD_7dAOnT7/pub?gid=845914004&single=true&output=csv"),
-    # "jp": ("JP's board", "<published CSV link>"),
+    "dan": {"label": "Dan's board", "credit": "Dan, Draft Craft podcast", "link": "https://www.draftcraftpod.com",
+            "csv": "https://docs.google.com/spreadsheets/d/e/2PACX-1vRW-Z8YnL-PfFLpZ0T01ZfeEz_BHpwZDYSw50zxOzuaB3x-SSr5byinrAmdOcDjUY5pYTvD_7dAOnT7/pub?gid=845914004&single=true&output=csv"},
+    # "jp": {"label": "JP's board", "credit": "JP, Draft Craft podcast", "link": "https://www.draftcraftpod.com", "csv": "<published CSV link>"},
+    # Guest board example:
+    # "smith": {"label": "Sam Smith's board", "credit": "Sam Smith, The Draft Show", "link": "https://example.com", "csv": "<published CSV link>"},
 }
 
 POSITIONS = {"QB", "RB", "WR", "TE", "OT", "IOL", "EDGE", "IDL", "LB", "CB", "S", "K", "P"}
@@ -168,9 +174,10 @@ def main():
     out_path = LIVE / "boards.json"
     old = json.loads(out_path.read_text()) if out_path.exists() else {"boards": {}}
     boards, failed, report = dict(old.get("boards", {})), False, []
-    for key, (label, url) in SHEETS.items():
+    for key, cfg in SHEETS.items():
+        label = cfg["label"]
         try:
-            players, skipped = parse_board(fetch(url))
+            players, skipped = parse_board(fetch(cfg["csv"]))
         except Exception as e:  # keep the last good copy of this board
             print(f"{label}: skipped ({e})")
             failed = True
@@ -185,9 +192,10 @@ def main():
         if skipped:
             report.append("\nSkipped, no usable position: " + ", ".join(skipped))
         report.append("")
-        prev = boards.get(key, {})
-        if prev.get("players") != players:
-            boards[key] = {"label": label, "players": players}
+        entry = {"label": label, "credit": cfg.get("credit", ""), "link": cfg.get("link", ""), "players": players}
+        if boards.get(key) != entry:
+            boards[key] = entry
+    boards = {k: v for k, v in boards.items() if k in SHEETS}
     if boards != old.get("boards"):
         import datetime as dt
         out_path.write_text(json.dumps({"asOf": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "boards": boards}, separators=(",", ":")))

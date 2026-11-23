@@ -157,6 +157,11 @@ details.values summary { cursor: pointer; font-weight: 500; }
 .rc-img { max-width: 100%; height: auto; border: 1px solid var(--line); }
 .g-a { color: var(--good); } .g-b { color: var(--field); } .g-c { color: var(--warn); } .g-d { color: var(--bad); }
 
+.options:has(.credit) { row-gap: 26px; }
+.field:has(.credit) { position: relative; }
+.field .credit { position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.field .credit a, .ranks a, .panel .note a { color: var(--field); }
+
 /* recent mocks */
 .recent { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .recent-list { display: grid; gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
@@ -761,12 +766,22 @@ let boardSource = DEFAULT_SOURCE;
 // { key, name, pos, school, rank (null = listed but not ranked), posRank, g (index on the General board or null) }.
 // A personal board is its ranked players in order, then everyone else in General board order.
 let LIVE_BOARDS = {};
-const BOARD_LABELS = { general: "General board", dan: "Dan's board", jp: "JP's board", combined: "Draft Craft Combined" };
-const boardChoices = () => ["general", ...["dan", "jp"].filter(k => LIVE_BOARDS[k]), ...(LIVE_BOARDS.dan && LIVE_BOARDS.jp ? ["combined"] : [])];
+let BOARD_LABELS = { general: "General board", combined: "Draft Craft Combined" };
+// Who made each board, with a link, shown in the picker, under the prospect list and in profiles
+const CREDIT_LINKS = { "Analyst consensus (57 boards)": "https://www.nflmockdraftdatabase.com", "DraftTek": "https://www.drafttek.com" };
+let BOARD_CREDITS = {
+  general: [["NFL Mock Draft Database consensus", CREDIT_LINKS["Analyst consensus (57 boards)"]], ["DraftTek", CREDIT_LINKS.DraftTek]],
+  combined: [["Dan and JP, Draft Craft podcast", "https://www.draftcraftpod.com"]],
+};
+const sheetKeys = () => Object.keys(LIVE_BOARDS);
+const boardChoices = () => ["general", ...sheetKeys().filter(k => k === "dan" || k === "jp"), ...(LIVE_BOARDS.dan && LIVE_BOARDS.jp ? ["combined"] : []),
+  ...sheetKeys().filter(k => k !== "dan" && k !== "jp")];
+const linkHtml = ([text, url]) => url ? `<a href="${esc(url)}" target="_blank" rel="noopener">${esc(text)}</a>` : esc(text);
+const creditHtml = key => BOARD_CREDITS[key] ? `Board by ${BOARD_CREDITS[key].map(linkHtml).join(" and ")}` : "";
 const sheetId = e => e.g != null ? "p" + (e.g + 1) : "x-" + e.key;
 // Each personal board's overall ranks by player id, shown in every profile
 function personalRanks() {
-  return Object.fromEntries(["dan", "jp"].filter(k => LIVE_BOARDS[k]).map(k =>
+  return Object.fromEntries(sheetKeys().map(k =>
     [BOARD_LABELS[k], new Map(LIVE_BOARDS[k].players.filter(e => e.rank).map(e => [sheetId(e), e.rank]))]));
 }
 function withBoardRanks(list) {
@@ -779,7 +794,7 @@ function buildBoard(key) {
   const extra = e => ({ id: sheetId(e), rank: 0, name: e.name, pos: e.pos, school: e.school, ht: 0, wt: 0, cls: "", boards: {} });
   const base = e => e.g != null && gen[e.g] ? { ...gen[e.g], pos: e.pos } : extra(e);
   let top = [], sheetEntries = [];
-  if (key === "dan" || key === "jp") {
+  if (LIVE_BOARDS[key]) {
     sheetEntries = LIVE_BOARDS[key].players;
     top = sheetEntries.filter(e => e.rank).sort((a, b) => a.rank - b.rank).map(e => ({ ...base(e), posRank: e.posRank || 0 }));
   } else if (key === "combined") {
@@ -825,13 +840,17 @@ function applyBoards(body) {
   if (!boards || typeof boards !== "object") return;
   const okEntry = e => e && typeof e.name === "string" && typeof e.key === "string" && POSITIONS.includes(e.pos) &&
     (e.rank === null || Number.isInteger(e.rank)) && (e.g === null || (Number.isInteger(e.g) && e.g >= 0 && e.g < BOARD.length));
-  const next = {};
-  for (const k of ["dan", "jp"]) {
-    const b = boards[k];
-    if (b && Array.isArray(b.players) && b.players.filter(e => e.rank).length >= 40 && b.players.every(okEntry)) next[k] = b;
+  const safeUrl = u => typeof u === "string" && /^https:\/\/[^\s"'<>]+$/.test(u) ? u : "";
+  const next = {}, labels = { general: "General board", combined: "Draft Craft Combined" }, credits = { general: BOARD_CREDITS.general, combined: BOARD_CREDITS.combined };
+  for (const [k, b] of Object.entries(boards)) {
+    if (!/^[a-z0-9-]{1,24}$/.test(k) || k in labels || k === "custom") continue;
+    if (!b || typeof b.label !== "string" || !Array.isArray(b.players) || b.players.filter(e => e.rank).length < 40 || !b.players.every(okEntry)) continue;
+    next[k] = b; labels[k] = b.label.slice(0, 40);
+    if (b.credit) credits[k] = [[String(b.credit).slice(0, 80), safeUrl(b.link)]];
+    if (safeUrl(b.link)) CREDIT_LINKS[labels[k]] = safeUrl(b.link);
   }
   const changed = JSON.stringify(next) !== JSON.stringify(LIVE_BOARDS);
-  LIVE_BOARDS = next;
+  LIVE_BOARDS = next; BOARD_LABELS = labels; BOARD_CREDITS = credits;
   if (!changed) return;
   if (S.phase === "setup" && (S.board !== "custom")) { useBoard(S.board); renderSetup(); }
 }
@@ -1040,7 +1059,8 @@ function renderSetup() {
   </div>
   <div class="options">
     ${boardChoices().length > 1 ? `<label class="field"><span class="label">Big board</span>
-      <select id="o-board">${boardChoices().map(k => `<option value="${k}" ${S.board === k ? "selected" : ""}>${BOARD_LABELS[k]}</option>`).join("")}${S.board === "custom" ? `<option value="custom" selected>Your pasted board</option>` : ""}</select></label>` : ""}
+      <select id="o-board">${boardChoices().map(k => `<option value="${k}" ${S.board === k ? "selected" : ""}>${BOARD_LABELS[k]}</option>`).join("")}${S.board === "custom" ? `<option value="custom" selected>Your pasted board</option>` : ""}</select>
+      ${creditHtml(S.board) ? `<small class="credit">${creditHtml(S.board)}</small>` : ""}</label>` : ""}
     <label class="field"><span class="label">CPU priorities</span>
       <select id="o-priority">${Object.entries(PRIORITY).map(([k, v]) => `<option value="${k}" ${S.priority === k ? "selected" : ""}>${v.label}</option>`).join("")}</select></label>
     <label class="field"><span class="label">CPU speed</span>
@@ -1133,7 +1153,7 @@ function renderRoom() {
       <div class="panel-head"><div><h3>Available prospects</h3><div class="note hint">Tap several positions to filter them together.</div></div><input class="search" id="q" type="search" placeholder="Search name or school" value="${esc(S.query)}"></div>
       <div class="filters">${["ALL", ...POSITIONS.filter(p => PLAYERS.some(x => x.pos === p))].map(p => `<button class="chip" data-pos="${p}" aria-pressed="${p === "ALL" ? !S.posFilter.size : S.posFilter.has(p)}">${p === "ALL" ? "All" : p}</button>`).join("")}</div>
       <div class="scroll" id="prospScroll">${prospectsHtml(pk, mine)}</div>
-      <div class="note" style="padding:8px 12px;border-top:1px solid var(--line)">${esc(boardSource)}. Click a row for the profile.</div>
+      <div class="note" style="padding:8px 12px;border-top:1px solid var(--line)">${esc(boardSource)}${creditHtml(S.board) ? ` · ${creditHtml(S.board)}` : ""}. Click a row for the profile.</div>
     </section>
   </div>`;
   bindRoom();
@@ -1223,8 +1243,8 @@ function openProfile(id) {
     <div class="facts"><div><span class="label">Height</span><b>${ft(p.ht)}</b></div><div><span class="label">Weight</span><b class="num">${p.wt || "—"}</b></div><div><span class="label">Class</span><b>${p.cls || "—"}</b></div><div><span class="label">Pos rank</span><b>${p.pos}${p.posRank}</b></div></div>
     <h3 style="margin-top:16px;font-size:18px">Rankings</h3>
     <table class="ranks"><tr><th class="label">Board</th><th class="label">Overall</th></tr>
-      <tr><td>${S.board === "general" ? "General board" : esc(BOARD_LABELS[S.board] || "Your board")} (in use)</td><td class="num">#${p.rank}</td></tr>
-      ${Object.entries(p.boards).filter(([k]) => k !== BOARD_LABELS[S.board]).map(([k, v]) => `<tr><td>${k}</td><td class="num">${v ? "#" + v : "Not ranked"}</td></tr>`).join("")}</table>
+      <tr><td>${esc(BOARD_LABELS[S.board] || "Your board")} (in use)</td><td class="num">#${p.rank}</td></tr>
+      ${Object.entries(p.boards).filter(([k]) => k !== BOARD_LABELS[S.board]).map(([k, v]) => `<tr><td>${linkHtml([k, CREDIT_LINKS[k]])}</td><td class="num">${v ? "#" + v : "Not ranked"}</td></tr>`).join("")}</table>
     <p class="note" style="margin-top:16px">${p.id.startsWith("x-") ? "Not on the General board yet, so there's no height, weight or class." : Object.keys(p.boards).length ? "Consensus rank from NFL Mock Draft Database (top 100 only). Height, weight and class from DraftTek." : "From your pasted board."}</p>
     ${canDraft ? `<button class="btn primary" style="width:100%;margin-top:8px;padding:12px" id="pdraft">Draft ${esc(p.name)} at #${pk.no}</button>` : ""}
   </aside>`;
