@@ -635,7 +635,7 @@ function applyBoards(body) {
   if (!changed) return;
   if (S.phase === "setup" && (S.board !== "custom")) { useBoard(S.board); renderSetup(); }
 }
-const S = { phase: "setup", board: "general", user: new Set(), priority: "balanced", speed: "fast", rounds: 3, chart: "consensus", futures: true, cpuOffers: true,
+const S = { view: "mock", phase: "setup", board: "general", user: new Set(), priority: "balanced", speed: "fast", rounds: 3, chart: "consensus", futures: true, cpuOffers: true,
   picks: [], future: [], running: false, posFilter: new Set(), sortBy: "overall", query: "", boardView: "all", trades: [] };
 let timer = null;
 
@@ -760,14 +760,9 @@ function buildOffers(pk) {
 // inside OFFER_RANGE; prefer fewer picks, then the total closest to the user's pick, with a little randomness.
 // In rounds 6 and 7 nobody moves back for a later pick of the same value, so the package must also include a future
 // 6th or 7th (2028 or 2029) as the sweetener, and the OFFER_RANGE cap doesn't apply.
-function buildPackage(abbr, userVal, windowEnd, late = false) {
-  if (late && !S.futures) return null;
-  const lo = userVal * OFFER_RANGE[0], hi = late ? userVal * 3 : userVal * OFFER_RANGE[1];
-  const futureOk = f => f.owner === abbr && f.year <= 2029 && (late ? f.round >= 6 : f.round <= 4);
-  const assets = [
-    ...S.picks.filter(p => p.owner === abbr && !p.player && p.no > current().no).map(p => ({ k: "P-" + p.no, near: p.no <= windowEnd })),
-    ...(S.futures ? S.future.filter(futureOk).map(f => ({ k: f.key, near: false, sweet: late })) : []),
-  ].map(x => ({ ...x, v: assetValue(x.k) })).filter(x => x.v < hi);
+// Every combination of up to four assets ({ k, v, near, sweet }) worth lo–hi that includes a near one (and, if late,
+// a sweetener), fewest picks first, then lowest total. Shared by CPU offers and the Trade chart tab.
+function searchPackages(assets, lo, hi, late = false) {
   const found = [];
   const walk = (start, chosen, total) => {
     if (chosen.length && total >= lo && chosen.some(x => x.near) && (!late || chosen.some(x => x.sweet)))
@@ -776,8 +771,18 @@ function buildPackage(abbr, userVal, windowEnd, late = false) {
     for (let i = start; i < assets.length; i++) if (total + assets[i].v <= hi) walk(i + 1, [...chosen, assets[i]], total + assets[i].v);
   };
   walk(0, [], 0);
+  return found.sort((x, y) => x.keys.length - y.keys.length || x.value - y.value);
+}
+function buildPackage(abbr, userVal, windowEnd, late = false) {
+  if (late && !S.futures) return null;
+  const lo = userVal * OFFER_RANGE[0], hi = late ? userVal * 3 : userVal * OFFER_RANGE[1];
+  const futureOk = f => f.owner === abbr && f.year <= 2029 && (late ? f.round >= 6 : f.round <= 4);
+  const assets = [
+    ...S.picks.filter(p => p.owner === abbr && !p.player && p.no > current().no).map(p => ({ k: "P-" + p.no, near: p.no <= windowEnd })),
+    ...(S.futures ? S.future.filter(futureOk).map(f => ({ k: f.key, near: false, sweet: late })) : []),
+  ].map(x => ({ ...x, v: assetValue(x.k) })).filter(x => x.v < hi);
+  const found = searchPackages(assets, lo, hi, late);
   if (!found.length) return null;
-  found.sort((x, y) => x.keys.length - y.keys.length || x.value - y.value);
   const best = found.filter(f => f.keys.length === found[0].keys.length).slice(0, 3);
   const pkg = best[Math.floor(Math.random() * best.length)];
   pkg.keys.sort((x, y) => assetValue(y) - assetValue(x));
@@ -829,6 +834,7 @@ function counterOffer(i) {
 /* ===================== SETUP VIEW ===================== */
 function firstPickOf(abbr) { return buildPicks(3).find(p => p.owner === abbr); }
 function renderSetup() {
+  if (S.view === "chart") return renderChart();
   const list = Object.keys(TEAMS).map(t => ({ t, pk: firstPickOf(t) })).sort((a, b) => a.pk.no - b.pk.no);
   const all = S.user.size === 32;
   app.innerHTML = `
@@ -905,6 +911,7 @@ function showRoom() { renderRoom(); root.scrollIntoView({ block: "start" }); }
 
 /* ===================== DRAFT ROOM ===================== */
 function renderRoom() {
+  if (S.view === "chart") return renderChart();
   const pk = current(), mine = isUser(pk);
   if (mine && !S.running && S.phase === "draft") maybeOffers(pk);
   const scrollEl = app.querySelector("#boardScroll"), prospEl = app.querySelector("#prospScroll");
@@ -1132,6 +1139,176 @@ function renderTrade() {
     closeOverlay(); renderRoom();
     toast(`Trade done: ${T.mine} gets ${got.join(", ")}`);
   };
+}
+
+/* ===================== TRADE CHART TAB ===================== */
+// A standalone trade calculator on the current projected order, separate from any mock: every pick's value, a
+// two-team calculator, "shop a pick" (each team's best offer by the same rules the CPU uses in the mock draft), and a
+// link that reopens the same trade. Future picks are each team's own 2028–2030 picks.
+const C = { a: "DET", b: null, give: new Set(), get: new Set(), shop: null, link: "" };
+let tabsEl = null;
+function renderTabs() {
+  if (!tabsEl) { tabsEl = document.createElement("nav"); tabsEl.className = "tabs"; tabsEl.setAttribute("role", "tablist"); app.before(tabsEl); }
+  tabsEl.innerHTML = [["mock", "Mock draft"], ["chart", "Trade chart"]].map(([k, l]) =>
+    `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.view === k}">${l}</button>`).join("");
+  tabsEl.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => showView(b.dataset.tab));
+}
+function showView(v) {
+  if (v === S.view) return;
+  if (v === "chart") { clearTimeout(timer); S.running = false; closeOverlay(); }
+  S.view = v; renderTabs();
+  v === "chart" ? renderChart() : S.phase === "setup" ? renderSetup() : renderRoom();
+}
+function chartAssets() {
+  const picks = DRAFT_ORDER.map(([no, round, owner, orig]) => ({ key: "P-" + no, no, round, owner, orig }));
+  const future = buildFuture();
+  return { picks, future, all: new Map([...picks, ...future].map(a => [a.key, a])) };
+}
+const chartValue = a => a.no ? pickValue(a.no) : pickValueAt(futureSlot(a.round, a.year, a.orig));
+const chartLabel = a => a.no ? `R${a.round} · #${a.no}${a.owner !== a.orig ? ` (via ${a.orig})` : ""}` : `${a.year} R${a.round}`;
+// What each other team would offer to move up to this pick, by the CPU offer rules (see buildPackage)
+function shopOffers(pk, A) {
+  const val = pickValue(pk.no), late = pk.round >= 6, out = [];
+  const lo = val * OFFER_RANGE[0], hi = late ? val * 3 : val * OFFER_RANGE[1];
+  for (const t of Object.keys(TEAMS)) {
+    if (t === pk.owner) continue;
+    const assets = [
+      ...A.picks.filter(p => p.owner === t && p.no > pk.no).map(p => ({ k: p.key, near: p.no <= pk.no + 40 })),
+      ...A.future.filter(f => f.owner === t && f.year <= 2029 && (late ? f.round >= 6 : f.round <= 4)).map(f => ({ k: f.key, near: false, sweet: late })),
+    ].map(x => ({ ...x, v: chartValue(A.all.get(x.k)) })).filter(x => x.v < hi);
+    const best = searchPackages(assets, lo, hi, late)[0];
+    if (best) out.push({ team: t, ...best });
+  }
+  return out.sort((x, y) => x.keys.length - y.keys.length || x.value - y.value);
+}
+function chartLinkParams() {
+  return new URLSearchParams({ c: S.chart, a: C.a, b: C.b, ga: [...C.give].join("."), gb: [...C.get].join("."), s: C.shop || "" }).toString();
+}
+function readChartLink(hash) {
+  const q = new URLSearchParams(hash.replace(/^#trade\/?/, "")), keys = s => new Set((s || "").split(".").filter(k => /^(P-\d{1,3}|F-20\d\d-[A-Z]{2,3}-[1-7])$/.test(k)));
+  if (CHARTS[q.get("c")]) S.chart = q.get("c");
+  if (TEAMS[q.get("a")]) C.a = q.get("a");
+  if (TEAMS[q.get("b")] && q.get("b") !== C.a) C.b = q.get("b");
+  C.give = keys(q.get("ga")); C.get = keys(q.get("gb"));
+  if (/^\d{1,3}$/.test(q.get("s") || "")) C.shop = +q.get("s");
+}
+async function copyChartLink() {
+  const url = location.href.split("#")[0] + "#trade/" + chartLinkParams();
+  try { await navigator.clipboard.writeText(url); C.link = ""; toast("Link copied. It opens this trade on the Trade chart tab."); }
+  catch { C.link = url; renderChart(); }
+}
+function renderChart() {
+  const A = chartAssets(), teams = Object.keys(TEAMS);
+  if (!TEAMS[C.a]) C.a = "DET";
+  if (!C.b || C.b === C.a) C.b = ORDER.find(t => t !== C.a);
+  const owned = (set, t) => new Set([...set].filter(k => A.all.get(k)?.owner === t));
+  C.give = owned(C.give, C.a); C.get = owned(C.get, C.b);
+  const val = k => chartValue(A.all.get(k)), sum = set => [...set].reduce((s, k) => s + val(k), 0);
+  const ga = sum(C.give), gb = sum(C.get), diff = ga - gb;
+  const keep = ["#cx-a", "#cx-b", "#shop-list"].map(s => [s, app.querySelector(s)?.scrollTop || 0]);
+
+  const col = (side, t, set, total) => {
+    const ks = [...A.picks.filter(p => p.owner === t), ...A.future.filter(f => f.owner === t)];
+    const row = a => `<label><span><input type="checkbox" data-c${side}="${a.key}" ${set.has(a.key) ? "checked" : ""}> ${esc(chartLabel(a))}</span><span class="num note">${a.no ? "" : `like #${Math.round(futureSlot(a.round, a.year, a.orig))} · `}${chartValue(a)} pts</span></label>`;
+    const groups = [["2027 picks", ks.filter(a => a.no)], ...FUTURE_YEARS.map(y => [`${y} picks`, ks.filter(a => a.year === y)])].filter(g => g[1].length);
+    return `<div class="trade-col"><header>${badge(t, "xs")}<select id="c-team-${side}" aria-label="Team ${side.toUpperCase()}">${teams.map(x => `<option value="${x}" ${x === t ? "selected" : ""}>${team(x)}</option>`).join("")}</select></header>
+      <div class="assets" id="cx-${side}">${groups.map(([h, list]) => `<div class="grp label">${h}</div>${list.map(row).join("")}`).join("")}</div>
+      <div class="tot"><span>${t} sends</span><span class="num">${total} pts</span></div>
+      <div class="fill"><button class="btn sm" data-fill="${side}" title="Pick the fewest ${t} picks worth 100–115% of the other side">Match the other side</button></div></div>`;
+  };
+  const verdict = !C.give.size && !C.get.size ? "Tick picks on both sides, or click any pick in the chart below."
+    : !C.give.size || !C.get.size ? `Now add what ${team(!C.give.size ? C.a : C.b)} send.`
+    : Math.abs(diff) <= Math.max(ga, gb) * 0.05 ? `About even: ${Math.abs(diff)} pts apart.`
+    : `${team(diff > 0 ? C.b : C.a)} win by ${Math.abs(diff)} pts (${Math.round(Math.abs(diff) / Math.min(ga, gb) * 100)}% more value).`;
+  const share = ga + gb ? ga / (ga + gb) * 100 : 50;
+
+  const shopPk = A.picks.find(p => p.no === C.shop) || A.picks.find(p => p.owner === C.a) || A.picks[0];
+  C.shop = shopPk.no;
+  const shopVal = pickValue(shopPk.no), offers = shopOffers(shopPk, A);
+
+  const rounds = [1, 2, 3, 4, 5, 6, 7].map(r => A.picks.filter(p => p.round === r)), depth = Math.max(...rounds.map(r => r.length));
+  const inDeal = new Set([...C.give, ...C.get]);
+  const minePicks = A.picks.filter(p => p.owner === C.a), mineFuture = A.future.filter(f => f.owner === C.a && f.year === FUTURE_YEARS[0]);
+  const cell = p => p ? `<button class="vcell ${p.owner === C.a ? "mine" : ""} ${inDeal.has(p.key) ? "in" : ""}" data-pick="${p.key}" title="#${p.no} ${team(p.owner)}${p.owner !== p.orig ? ` (via ${p.orig})` : ""}: ${pickValue(p.no)} pts">
+    <span class="no">${p.no}</span>${badge(p.owner, "xs")}<span class="v">${pickValue(p.no)}</span></button>` : "";
+
+  app.innerHTML = `
+  <div class="setup-head">
+    <div><h1>Trade value <span style="color:var(--accent)">chart</span></h1>
+    <p>Every 2027 pick, valued on the chart you choose. Build a trade between any two teams, or shop a pick to see what each team would offer for it.</p>
+    <p class="note">Projected order and traded picks from Tankathon (${fmtAsOf(ORDER_META.asOf)}${ORDER_META.live ? ", live" : ""}). Projected compensatory picks aren't included. Nothing here changes your mock draft.</p></div>
+    <label class="field"><span class="label">Value chart</span>
+      <select id="c-chart">${Object.entries(CHARTS).map(([k, v]) => `<option value="${k}" ${S.chart === k ? "selected" : ""}>${v.name}</option>`).join("")}</select></label>
+  </div>
+  <div class="chart-top">
+    <section class="panel cx">
+      <div class="panel-head"><h3>Trade calculator</h3><div class="row"><button class="btn sm" id="c-swap">Swap sides</button><button class="btn sm" id="c-clear">Clear</button><button class="btn sm primary" id="c-link">Copy link</button></div></div>
+      <div class="panel-body">
+        <div class="trade-cols">${col("a", C.a, C.give, ga)}${col("b", C.b, C.get, gb)}</div>
+        <div class="balance" title="${C.a} ${ga} pts · ${C.b} ${gb} pts"><i style="width:${share}%;background:var(--accent)"></i><i style="width:${100 - share}%;background:var(--field)"></i></div>
+        <div class="row" style="justify-content:space-between"><span class="note num">${C.a} ${ga} pts</span><span class="verdict">${verdict}</span><span class="note num">${C.b} ${gb} pts</span></div>
+        ${C.give.size && C.get.size ? `<p class="note" style="margin-top:6px">In the mock draft, a computer team accepts a trade when it gets at least 5% more value than it gives up.</p>` : ""}
+        ${C.link ? `<input class="cx-link" readonly value="${esc(C.link)}" aria-label="Link to this trade">` : ""}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h3>Shop a pick</h3>
+        <select id="c-shop" class="search" style="width:auto" aria-label="Pick to shop">${rounds.map((r, i) => `<optgroup label="Round ${i + 1}">${r.map(p => `<option value="${p.no}" ${p.no === shopPk.no ? "selected" : ""}>#${p.no} ${p.owner}</option>`).join("")}</optgroup>`).join("")}</select></div>
+      <div class="panel-body">
+        <p class="note">Who would trade up to <b>#${shopPk.no}</b> (${team(shopPk.owner)}, ${shopVal} pts), using the mock draft's CPU offer rules: a pick within about a round after it, worth ${shopPk.round >= 6 ? "at least its value plus a 2028 or 2029 6th or 7th" : `${Math.round(OFFER_RANGE[0] * 100)}–${Math.round(OFFER_RANGE[1] * 100)}% of its value`}.</p>
+        <div class="shop-list" id="shop-list">${offers.length ? offers.map((o, i) => `<div class="offer">${badge(o.team)}
+          <div style="min-width:0"><b>${team(o.team)}</b><div class="pkg">${o.keys.map(k => esc(chartLabel(A.all.get(k)))).join(" + ")}</div>
+          <div class="note num">${o.value} pts (+${Math.round((o.value / shopVal - 1) * 100)}%)</div></div>
+          <div class="acts"><button class="btn sm" data-load="${i}">Load</button></div></div>`).join("") : `<p class="note" style="padding-top:10px">No team has the picks for a package that fits.</p>`}</div>
+      </div>
+    </section>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><div><h3>2027 pick values</h3><div class="note hint">${team(C.a)}: ${minePicks.length} picks worth ${minePicks.reduce((s, p) => s + pickValue(p.no), 0)} pts, plus ${mineFuture.length} in ${FUTURE_YEARS[0]}. Click a pick to add it to the trade.</div></div></div>
+    <div class="vt-wrap" style="margin:0"><table class="vchart"><thead><tr>${rounds.map((_, i) => `<th class="label">Round ${i + 1}</th>`).join("")}</tr></thead>
+      <tbody>${Array.from({ length: depth }, (_, i) => `<tr>${rounds.map(r => `<td>${cell(r[i])}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+  </section>
+  ${valuesTableHtml()}`;
+
+  keep.forEach(([s, top]) => { const el = app.querySelector(s); if (el) el.scrollTop = top; });
+  const $ = s => app.querySelector(s);
+  $("#c-chart").onchange = e => { S.chart = e.target.value; renderChart(); };
+  const setTeam = (side, t) => {
+    if (side === "a") { if (t === C.b) { C.b = C.a; C.get = C.give; } C.a = t; C.give = new Set(); }
+    else { if (t === C.a) { C.a = C.b; C.give = C.get; } C.b = t; C.get = new Set(); }
+    C.link = ""; renderChart();
+  };
+  $("#c-team-a").onchange = e => setTeam("a", e.target.value);
+  $("#c-team-b").onchange = e => setTeam("b", e.target.value);
+  $("#c-swap").onclick = () => { [C.a, C.b, C.give, C.get] = [C.b, C.a, C.get, C.give]; C.link = ""; renderChart(); };
+  $("#c-clear").onclick = () => { C.give = new Set(); C.get = new Set(); C.link = ""; renderChart(); };
+  $("#c-link").onclick = copyChartLink;
+  app.querySelectorAll("[data-ca], [data-cb]").forEach(c => c.onchange = () => {
+    const set = c.dataset.ca ? C.give : C.get, k = c.dataset.ca || c.dataset.cb;
+    c.checked ? set.add(k) : set.delete(k); C.link = ""; renderChart();
+  });
+  app.querySelectorAll("[data-fill]").forEach(b => b.onclick = () => {
+    const side = b.dataset.fill, t = side === "a" ? C.a : C.b, other = side === "a" ? gb : ga;
+    if (!other) { toast(`Pick what ${team(side === "a" ? C.b : C.a)} send first.`); return; }
+    const assets = [...A.picks, ...A.future].filter(x => x.owner === t).map(x => ({ k: x.key, v: chartValue(x), near: true })).filter(x => x.v <= other * 1.15);
+    const best = searchPackages(assets, other, other * 1.15)[0];
+    if (!best) { toast(`${team(t)} don't have picks that add up to ${other} pts.`); return; }
+    if (side === "a") C.give = new Set(best.keys); else C.get = new Set(best.keys);
+    C.link = ""; renderChart();
+  });
+  $("#c-shop").onchange = e => { C.shop = +e.target.value; renderChart(); };
+  app.querySelectorAll("[data-load]").forEach(b => b.onclick = () => {
+    const o = offers[+b.dataset.load];
+    C.a = shopPk.owner; C.give = new Set([shopPk.key]); C.b = o.team; C.get = new Set(o.keys); C.link = "";
+    renderChart(); app.querySelector(".cx").scrollIntoView({ block: "nearest", behavior: "smooth" });
+  });
+  app.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
+    const p = A.all.get(b.dataset.pick), tog = set => set.has(p.key) ? set.delete(p.key) : set.add(p.key);
+    if (p.owner === C.a) tog(C.give);
+    else if (p.owner === C.b) tog(C.get);
+    else { C.b = p.owner; C.get = new Set([p.key]); }
+    C.link = ""; renderChart();
+  });
 }
 
 /* ===================== GRADES ===================== */
@@ -1486,7 +1663,8 @@ function applyOrder(body) {
 function liveChanged(changed, what) {
   renderFresh();
   if (!changed) return;
-  if (S.phase === "setup") renderSetup();
+  if (S.view === "chart") renderChart();
+  else if (S.phase === "setup") renderSetup();
   else {
     if (overlay.querySelector(".sheet")) renderTrade();
     toast(`${what}: future pick values refreshed. Changes to the order apply to your next draft.`);
@@ -1519,6 +1697,9 @@ const brandLogo = document.getElementById("dc-brand-logo");
 if (brandLogo) brandLogo.src = DC_LOGO;
 S.user.add("DET");
 renderFresh();
-renderSetup();
+if (/^#trade\b/.test(location.hash)) { readChartLink(location.hash); S.view = "chart"; }
+window.addEventListener("hashchange", () => { if (/^#trade\b/.test(location.hash)) { readChartLink(location.hash); S.view === "chart" ? renderChart() : showView("chart"); } });
+renderTabs();
+S.view === "chart" ? renderChart() : renderSetup();
 
 })();

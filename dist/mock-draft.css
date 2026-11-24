@@ -181,7 +181,32 @@
 #dc-md .offers .label + .offer { margin-top: 8px; }
 #dc-md .offer .pkg { font-size: 13px; color: var(--ink); margin-top: 2px; }
 #dc-md .offer .acts { display: flex; gap: 6px; }
+#dc-md nav.tabs { display: flex; gap: 2px; margin: -8px 0 18px; border-bottom: 1px solid var(--line); }
+#dc-md .tab { background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; padding: 8px 14px; font: 400 15px var(--display); text-transform: uppercase; letter-spacing: .02em; color: var(--muted); }
+#dc-md .tab:hover { color: var(--ink); }
+#dc-md .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+#dc-md .chart-top { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 14px; align-items: start; margin-bottom: 14px; }
+#dc-md .panel-body { padding: 12px; }
+#dc-md .cx .trade-cols { margin-top: 0; }
+#dc-md .cx .assets { max-height: 360px; overflow-y: auto; }
+#dc-md .cx .fill { padding: 0 10px 10px; }
+#dc-md .balance { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--surface-2); margin: 14px 0 6px; }
+#dc-md .balance i { display: block; height: 100%; transition: width .2s; }
+#dc-md .shop-list { max-height: 520px; overflow-y: auto; }
+#dc-md .shop-list .offer:first-child { border-top: 0; }
+#dc-md .cx-link { width: 100%; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); font: 12px var(--mono); }
+#dc-md .vchart { border-collapse: collapse; width: 100%; min-width: 780px; }
+#dc-md .vchart th { text-align: left; padding: 6px 8px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+#dc-md .vchart td { padding: 1px 2px; border-bottom: 1px solid var(--line); }
+#dc-md .vcell { display: grid; grid-template-columns: 30px 24px 1fr; gap: 6px; align-items: center; width: 100%; padding: 3px 6px; background: none; border: 1px solid transparent; border-radius: var(--radius); text-align: left; }
+#dc-md .vcell:hover { border-color: var(--line); background: var(--surface-2); }
+#dc-md .vcell .no { font: 500 12px var(--mono); color: var(--muted); text-align: right; }
+#dc-md .vcell .v { font: 500 13px var(--mono); text-align: right; }
+#dc-md .vcell.mine { background: var(--clock); }
+#dc-md .vcell.mine .no { color: var(--accent); }
+#dc-md .vcell.in { border-color: var(--accent); }
 @media (max-width: 860px) {
+#dc-md .chart-top { grid-template-columns: 1fr; }
 #dc-md .room { grid-template-columns: 1fr; }
 #dc-md .scroll { max-height: 55vh; min-height: 0; }
 #dc-md .clock { grid-template-columns: auto 1fr; }

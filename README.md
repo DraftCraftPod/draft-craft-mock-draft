@@ -61,6 +61,15 @@ Big boards (`live/boards.json`):
   player only one of them ranked counts as just past the end of the other's list). After a board's ranked players
   it continues in General board order. Only boards that have loaded are offered.
 
+Trade chart tab (next to Mock draft):
+
+- Every 2027 pick in the current projected order with its value on the chosen chart; click a pick to add it to the trade.
+- A two-team calculator with 2027 picks and each team's own 2028–2030 picks. "Match the other side" fills in the
+  fewest picks worth 100–115% of the other side.
+- "Shop a pick" lists each team's best offer to move up to a pick, using the CPU offer rules (`searchPackages`).
+- "Copy link" gives a `#trade/...` link that opens the same trade on this tab.
+- It doesn't touch the mock draft; switching to it pauses a running draft.
+
 Everything is served by GitHub Pages from this repo, at https://draftcraftpod.github.io/draft-craft-mock-draft/
 (`dist/` for the app, `live/` for the data). After changing the app, run the build and push; Pages republishes in
 about a minute, and browsers may hold the old copy for up to 10 minutes.
