@@ -17,6 +17,11 @@ FIX = {"WSH": "WAS"}
 # Tankathon keeps adjusting the order through the playoffs and pick trades until the draft
 LAST_DAY = dt.date(2027, 5, 1)
 RECORDS_LAST_DAY = dt.date(2027, 1, 13)  # end of the 2026 regular season
+# Compensatory picks: until the NFL awards them (usually early March), Tankathon shows OverTheCap's projections and the
+# site marks them "projected" (they can't be traded). Set COMP_AWARDED = True the day the NFL announces them; failing
+# that, they count as awarded from COMP_AWARDED_BY.
+COMP_AWARDED = False
+COMP_AWARDED_BY = dt.date(2027, 3, 20)
 
 
 def fetch(url):
@@ -26,13 +31,20 @@ def fetch(url):
 
 
 def parse_tankathon(html):
-    picks = []
+    """Returns (picks, comp): the 224 regular picks and the compensatory picks, each [no, round, owner, original team]."""
+    picks, comp = [], []
     for rnd, block in enumerate(re.split(r'class="round-title"', html)[1:], start=1):
-        for no, body in re.findall(r'<tr><td class="pick-number">(\d+)</td>(.*?)</tr>', block, flags=re.S):
+        for no, tag, body in re.findall(r'<tr><td class="pick-number">(\d+)(<span.*?</span>)?</td>(.*?)</tr>', block, flags=re.S):
             logos = [FIX.get(c.upper(), c.upper()) for c in re.findall(r"/nfl/([a-z]+)\.svg", body)]
             if not logos:
                 raise ValueError(f"pick {no}: no team logo found")
-            picks.append([int(no), rnd, logos[0], logos[1] if len(logos) > 1 else logos[0]])
+            row = [int(no), rnd, logos[0], logos[1] if len(logos) > 1 else logos[0]]
+            if "Compensatory" in tag:
+                comp.append(row)
+            elif tag:
+                raise ValueError(f"pick {no}: unknown marker {tag[:80]}")
+            else:
+                picks.append(row)
     if len(picks) != 224:
         raise ValueError(f"expected 224 picks, got {len(picks)}")
     for r in range(1, 8):
@@ -41,7 +53,12 @@ def parse_tankathon(html):
             raise ValueError(f"round {r} is not 32 picks with every team once")
     if [p[0] for p in picks] != sorted(p[0] for p in picks):
         raise ValueError("pick numbers are out of order")
-    return picks
+    if len(comp) > 40 or any(p[1] < 3 or not {p[2], p[3]} <= TEAMS for p in comp):
+        raise ValueError(f"unexpected compensatory picks: {comp[:5]}")
+    every = sorted(picks + comp)
+    if len({p[0] for p in every}) != len(every) or [p[1] for p in every] != sorted(p[1] for p in every):
+        raise ValueError("compensatory pick numbers collide or fall outside their round")
+    return picks, comp
 
 
 def parse_espn(text):
@@ -61,14 +78,15 @@ def parse_espn(text):
     return teams
 
 
-def update(name, key, value, source):
+def update(name, key, value, source, extra=None):
     path = LIVE / name
     old = json.loads(path.read_text()) if path.exists() else {}
-    if old.get(key) == value:
+    extra = extra or {}
+    if old.get(key) == value and all(old.get(k) == v for k, v in extra.items()):
         print(f"{name}: unchanged")
         return
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    path.write_text(json.dumps({"asOf": stamp, "source": source, key: value}, separators=(",", ":")) + "\n")
+    path.write_text(json.dumps({"asOf": stamp, "source": source, key: value, **extra}, separators=(",", ":")) + "\n")
     print(f"{name}: updated")
 
 
@@ -79,7 +97,9 @@ def main():
         return 0
     failed = False
     try:
-        update("order.json", "picks", parse_tankathon(fetch("https://www.tankathon.com/nfl/full-draft")), "Tankathon")
+        picks, comp = parse_tankathon(fetch("https://www.tankathon.com/nfl/full-draft"))
+        awarded = COMP_AWARDED or today >= COMP_AWARDED_BY
+        update("order.json", "picks", picks, "Tankathon", {"comp": comp, "compAwarded": awarded})
     except Exception as e:  # keep the last good order
         print(f"order.json: skipped ({e})")
         failed = True

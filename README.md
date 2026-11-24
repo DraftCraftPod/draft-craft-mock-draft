@@ -43,6 +43,12 @@ Live data on the website:
   servers (no computer needs to be on) and commits the files only when something changed. It keeps refreshing
   the order through the 2027 draft; records stop after the regular season.
 - The page re-checks the files every 15 minutes while open.
+- Compensatory picks: `order.json` also carries `comp` (Tankathon's comp picks, projected by OverTheCap until the NFL
+  awards them) and `compAwarded`. Projected comp picks are drafted in the mock but can't be traded and draw no CPU
+  offers; once awarded they're ordinary picks. Set `COMP_AWARDED = True` in `scripts/refresh_live.py` the day the
+  NFL announces them (usually early March); otherwise they switch on `COMP_AWARDED_BY` (Mar 20, 2027).
+- Pick values run to #262 so comp picks past #224 keep falling in value (`data/trade-charts/build.py` extends the
+  charts that stop earlier).
 
 Big boards (`live/boards.json`):
 

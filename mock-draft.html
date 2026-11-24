@@ -228,6 +228,10 @@ nav.tabs { display: flex; gap: 2px; margin: -8px 0 18px; border-bottom: 1px soli
 .vcell.mine { background: var(--clock); }
 .vcell.mine .no { color: var(--accent); }
 .vcell.in { border-color: var(--accent); }
+.vcell.comp .no::after { content: "C"; margin-left: 1px; font-size: 9px; color: var(--field); vertical-align: super; }
+.vcell.proj { border: 1px dashed var(--line); opacity: .75; }
+.comp { font: 600 10px var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--field); border: 1px solid var(--field); border-radius: 3px; padding: 0 4px; }
+.comp.proj { border-style: dashed; color: var(--muted); border-color: var(--muted); }
 
 @media (max-width: 860px) {
   .chart-top { grid-template-columns: 1fr; }
@@ -267,11 +271,14 @@ const TEAMS = {
 /* Draft order: NFL.com projected order entering Week 7 of the 2026 season. Picks 1–18 by record;
    the 14 teams in playoff position (19–32) are ordered here by record, since their real slots depend on the playoffs.
    Rounds 2–3 repeat the round 1 order of original owners; only known first-round trades are applied. */
-/* Draft order: Tankathon's projected full draft, [pick no, round, current owner, original team]. Pick numbers skip the
-   slots Tankathon reserves for compensatory picks, so later rounds run past #224 as in a real draft. The page ships
+/* Draft order: Tankathon's projected full draft, [pick no, round, current owner, original team]. The 224 regular picks
+   are DRAFT_ORDER; compensatory picks (end of rounds 3–7) are COMP_PICKS, so later rounds run past #224 as in a real draft. The page ships
    with this snapshot and swaps in the live copy from its data store (standings/order), refreshed by a scheduled task. */
-let DRAFT_ORDER = [[1,1,"LAC","LAC"],[2,1,"MIA","MIA"],[3,1,"TEN","TEN"],[4,1,"TB","TB"],[5,1,"WAS","WAS"],[6,1,"NYJ","DAL"],[7,1,"HOU","HOU"],[8,1,"PHI","PHI"],[9,1,"NYJ","IND"],[10,1,"ARI","ARI"],[11,1,"CLE","LAR"],[12,1,"NO","NO"],[13,1,"NYJ","NYJ"],[14,1,"ATL","ATL"],[15,1,"LV","LV"],[16,1,"SEA","SEA"],[17,1,"NE","NE"],[18,1,"CIN","CIN"],[19,1,"NYG","NYG"],[20,1,"CAR","CAR"],[21,1,"DET","DET"],[22,1,"BAL","BAL"],[23,1,"PIT","PIT"],[24,1,"DEN","DEN"],[25,1,"JAX","JAX"],[26,1,"CLE","CLE"],[27,1,"DAL","GB"],[28,1,"CHI","CHI"],[29,1,"BUF","BUF"],[30,1,"MIN","MIN"],[31,1,"KC","KC"],[32,1,"SF","SF"],[33,2,"LAC","LAC"],[34,2,"MIA","MIA"],[35,2,"TB","TB"],[36,2,"TEN","TEN"],[37,2,"WAS","WAS"],[38,2,"ARI","HOU"],[39,2,"PHI","PHI"],[40,2,"IND","IND"],[41,2,"ARI","ARI"],[42,2,"LAR","LAR"],[43,2,"NO","NO"],[44,2,"NYJ","NYJ"],[45,2,"ATL","ATL"],[46,2,"DAL","DAL"],[47,2,"SEA","SEA"],[48,2,"LV","LV"],[49,2,"NE","NE"],[50,2,"CIN","CIN"],[51,2,"NYG","NYG"],[52,2,"DET","DET"],[53,2,"CAR","CAR"],[54,2,"PIT","PIT"],[55,2,"DEN","DEN"],[56,2,"BAL","BAL"],[57,2,"CLE","CLE"],[58,2,"GB","GB"],[59,2,"JAX","JAX"],[60,2,"CHI","CHI"],[61,2,"BUF","BUF"],[62,2,"MIN","MIN"],[63,2,"KC","KC"],[64,2,"SF","SF"],[65,3,"LAC","LAC"],[66,3,"MIA","MIA"],[67,3,"TEN","TEN"],[68,3,"TB","TB"],[69,3,"WAS","WAS"],[70,3,"MIN","PHI"],[71,3,"IND","IND"],[72,3,"ARI","ARI"],[73,3,"KC","LAR"],[74,3,"NO","NO"],[75,3,"NYJ","NYJ"],[76,3,"ATL","ATL"],[77,3,"PIT","DAL"],[78,3,"HOU","HOU"],[79,3,"LV","LV"],[80,3,"SEA","SEA"],[81,3,"NE","NE"],[82,3,"CIN","CIN"],[83,3,"NYG","NYG"],[84,3,"CAR","CAR"],[85,3,"DET","DET"],[86,3,"DEN","DEN"],[87,3,"BAL","BAL"],[88,3,"PIT","PIT"],[89,3,"GB","GB"],[90,3,"JAX","JAX"],[91,3,"CLE","CLE"],[92,3,"CHI","CHI"],[93,3,"BUF","BUF"],[94,3,"MIN","MIN"],[95,3,"KC","KC"],[96,3,"SF","SF"],[102,4,"LAC","LAC"],[103,4,"MIA","MIA"],[104,4,"TB","TB"],[105,4,"TEN","TEN"],[106,4,"WAS","WAS"],[107,4,"IND","IND"],[108,4,"ARI","ARI"],[109,4,"LAR","LAR"],[110,4,"NO","NO"],[111,4,"NYJ","NYJ"],[112,4,"ATL","ATL"],[113,4,"GB","DAL"],[114,4,"HOU","HOU"],[115,4,"PHI","PHI"],[116,4,"CLE","SEA"],[117,4,"LV","LV"],[118,4,"NE","NE"],[119,4,"CIN","CIN"],[120,4,"CLE","NYG"],[121,4,"DET","DET"],[122,4,"CAR","CAR"],[123,4,"BAL","BAL"],[124,4,"DAL","PIT"],[125,4,"DEN","DEN"],[126,4,"JAX","JAX"],[127,4,"CLE","CLE"],[128,4,"GB","GB"],[129,4,"CHI","CHI"],[130,4,"BUF","BUF"],[131,4,"CAR","MIN"],[132,4,"KC","KC"],[133,4,"SF","SF"],[138,5,"LAC","LAC"],[139,5,"MIA","MIA"],[140,5,"TEN","TEN"],[141,5,"TB","TB"],[142,5,"WAS","WAS"],[143,5,"ARI","ARI"],[144,5,"LAR","LAR"],[145,5,"NO","NO"],[146,5,"NYJ","NYJ"],[147,5,"CHI","ATL"],[148,5,"PIT","DAL"],[149,5,"CLE","HOU"],[150,5,"PHI","PHI"],[151,5,"IND","IND"],[152,5,"LV","LV"],[153,5,"SEA","SEA"],[154,5,"PHI","NE"],[155,5,"CIN","CIN"],[156,5,"MIN","NYG"],[157,5,"MIN","CAR"],[158,5,"DET","DET"],[159,5,"MIA","PIT"],[160,5,"DEN","DEN"],[161,5,"PHI","BAL"],[162,5,"CLE","CLE"],[163,5,"GB","GB"],[164,5,"JAX","JAX"],[165,5,"NE","CHI"],[166,5,"BUF","BUF"],[167,5,"MIN","MIN"],[168,5,"KC","KC"],[169,5,"SF","SF"],[179,6,"NO","LAC"],[180,6,"MIA","MIA"],[181,6,"TB","TB"],[182,6,"TEN","TEN"],[183,6,"WAS","WAS"],[184,6,"LAR","LAR"],[185,6,"NE","NO"],[186,6,"MIN","NYJ"],[187,6,"ATL","ATL"],[188,6,"PIT","DAL"],[189,6,"HOU","HOU"],[190,6,"NYJ","PHI"],[191,6,"IND","IND"],[192,6,"HOU","ARI"],[193,6,"SEA","SEA"],[194,6,"LV","LV"],[195,6,"MIN","NE"],[196,6,"CIN","CIN"],[197,6,"NYG","NYG"],[198,6,"DET","DET"],[199,6,"CAR","CAR"],[200,6,"DEN","DEN"],[201,6,"SF","BAL"],[202,6,"PIT","PIT"],[203,6,"GB","GB"],[204,6,"NYG","JAX"],[205,6,"HOU","CLE"],[206,6,"CHI","CHI"],[207,6,"BUF","BUF"],[208,6,"NE","MIN"],[209,6,"NYJ","KC"],[210,6,"KC","SF"],[221,7,"LAC","LAC"],[222,7,"PIT","MIA"],[223,7,"TEN","TEN"],[224,7,"TB","TB"],[225,7,"WAS","WAS"],[226,7,"DEN","NO"],[227,7,"PHI","NYJ"],[228,7,"ATL","ATL"],[229,7,"PHI","DAL"],[230,7,"CLE","HOU"],[231,7,"MIN","PHI"],[232,7,"IND","IND"],[233,7,"ARI","ARI"],[234,7,"LAC","LAR"],[235,7,"BUF","LV"],[236,7,"SEA","SEA"],[237,7,"HOU","NE"],[238,7,"CIN","CIN"],[239,7,"MIA","NYG"],[240,7,"CAR","CAR"],[241,7,"DET","DET"],[242,7,"BAL","BAL"],[243,7,"PIT","PIT"],[244,7,"DEN","DEN"],[245,7,"JAX","JAX"],[246,7,"CLE","CLE"],[247,7,"GB","GB"],[248,7,"CHI","CHI"],[249,7,"BUF","BUF"],[250,7,"NE","MIN"],[251,7,"SF","KC"],[252,7,"ARI","SF"]];
-let ORDER_META = { asOf: "2026-10-24T22:00:00Z", source: "Tankathon", live: false };
+let DRAFT_ORDER = [[1,1,"TEN","TEN"],[2,1,"LAC","LAC"],[3,1,"MIA","MIA"],[4,1,"NYJ","IND"],[5,1,"NYJ","NYJ"],[6,1,"ARI","ARI"],[7,1,"TB","TB"],[8,1,"NO","NO"],[9,1,"PHI","PHI"],[10,1,"ATL","ATL"],[11,1,"BAL","BAL"],[12,1,"LV","LV"],[13,1,"HOU","HOU"],[14,1,"WAS","WAS"],[15,1,"NYJ","DAL"],[16,1,"NE","NE"],[17,1,"CLE","LAR"],[18,1,"SEA","SEA"],[19,1,"CAR","CAR"],[20,1,"CLE","CLE"],[21,1,"PIT","PIT"],[22,1,"DAL","GB"],[23,1,"NYG","NYG"],[24,1,"CIN","CIN"],[25,1,"PHI","JAX"],[26,1,"MIN","MIN"],[27,1,"KC","KC"],[28,1,"TEN","CHI"],[29,1,"DET","DET"],[30,1,"DEN","DEN"],[31,1,"SF","SF"],[32,1,"BUF","BUF"],[33,2,"LAC","LAC"],[34,2,"MIA","MIA"],[35,2,"TEN","TEN"],[36,2,"NYJ","NYJ"],[37,2,"ARI","ARI"],[38,2,"IND","IND"],[39,2,"NO","NO"],[40,2,"PHI","PHI"],[41,2,"ATL","ATL"],[42,2,"TB","TB"],[43,2,"LV","LV"],[44,2,"BAL","BAL"],[45,2,"ARI","HOU"],[46,2,"WAS","WAS"],[47,2,"DAL","DAL"],[48,2,"NE","NE"],[49,2,"SEA","SEA"],[50,2,"LAR","LAR"],[51,2,"CAR","CAR"],[52,2,"PIT","PIT"],[53,2,"GB","GB"],[54,2,"CLE","CLE"],[55,2,"NYG","NYG"],[56,2,"CIN","CIN"],[57,2,"MIN","MIN"],[58,2,"ATL","JAX"],[59,2,"CHI","CHI"],[60,2,"KC","KC"],[61,2,"DEN","DEN"],[62,2,"DET","DET"],[63,2,"SF","SF"],[64,2,"TEN","BUF"],[65,3,"MIA","MIA"],[66,3,"TEN","TEN"],[67,3,"LAC","LAC"],[68,3,"ARI","ARI"],[69,3,"IND","IND"],[70,3,"NYJ","NYJ"],[71,3,"MIN","PHI"],[72,3,"ATL","ATL"],[73,3,"TB","TB"],[74,3,"NO","NO"],[75,3,"BAL","BAL"],[76,3,"LV","LV"],[77,3,"HOU","HOU"],[78,3,"WAS","WAS"],[79,3,"PIT","DAL"],[80,3,"NE","NE"],[81,3,"KC","LAR"],[82,3,"IND","SEA"],[83,3,"CAR","CAR"],[84,3,"GB","GB"],[85,3,"CLE","CLE"],[86,3,"PIT","PIT"],[87,3,"NYG","NYG"],[88,3,"CIN","CIN"],[89,3,"JAX","JAX"],[90,3,"LV","MIN"],[91,3,"KC","KC"],[92,3,"CHI","CHI"],[93,3,"DET","DET"],[94,3,"DEN","DEN"],[95,3,"SF","SF"],[96,3,"BUF","BUF"],[102,4,"TEN","TEN"],[103,4,"LAC","LAC"],[104,4,"MIA","MIA"],[105,4,"IND","IND"],[106,4,"NYJ","NYJ"],[107,4,"ARI","ARI"],[108,4,"ATL","ATL"],[109,4,"TB","TB"],[110,4,"NO","NO"],[111,4,"PHI","PHI"],[112,4,"LV","LV"],[113,4,"ARI","BAL"],[114,4,"HOU","HOU"],[115,4,"WAS","WAS"],[116,4,"GB","DAL"],[117,4,"NE","NE"],[118,4,"CLE","SEA"],[119,4,"LAR","LAR"],[120,4,"CAR","CAR"],[121,4,"CLE","CLE"],[122,4,"DAL","PIT"],[123,4,"GB","GB"],[124,4,"CLE","NYG"],[125,4,"CIN","CIN"],[126,4,"CAR","MIN"],[127,4,"JAX","JAX"],[128,4,"TEN","CHI"],[129,4,"IND","KC"],[130,4,"DEN","DEN"],[131,4,"DET","DET"],[132,4,"IND","SF"],[133,4,"BUF","BUF"],[138,5,"LAC","LAC"],[139,5,"MIA","MIA"],[140,5,"BUF","TEN"],[141,5,"NYJ","NYJ"],[142,5,"BAL","ARI"],[143,5,"IND","IND"],[144,5,"TB","TB"],[145,5,"NO","NO"],[146,5,"PHI","PHI"],[147,5,"CHI","ATL"],[148,5,"PHI","BAL"],[149,5,"LV","LV"],[150,5,"CLE","HOU"],[151,5,"WAS","WAS"],[152,5,"PIT","DAL"],[153,5,"PHI","NE"],[154,5,"LAR","LAR"],[155,5,"SEA","SEA"],[156,5,"MIN","CAR"],[157,5,"MIA","PIT"],[158,5,"GB","GB"],[159,5,"CLE","CLE"],[160,5,"MIN","NYG"],[161,5,"CIN","CIN"],[162,5,"JAX","JAX"],[163,5,"MIN","MIN"],[164,5,"IND","KC"],[165,5,"NE","CHI"],[166,5,"DET","DET"],[167,5,"DEN","DEN"],[168,5,"SF","SF"],[169,5,"BUF","BUF"],[180,6,"MIA","MIA"],[181,6,"TEN","TEN"],[182,6,"NO","LAC"],[183,6,"HOU","ARI"],[184,6,"BUF","IND"],[185,6,"MIN","NYJ"],[186,6,"NE","NO"],[187,6,"NYJ","PHI"],[188,6,"KC","ATL"],[189,6,"TB","TB"],[190,6,"LV","LV"],[191,6,"IND","BAL"],[192,6,"NE","HOU"],[193,6,"WAS","WAS"],[194,6,"PIT","DAL"],[195,6,"NE","NE"],[196,6,"LAC","SEA"],[197,6,"LAR","LAR"],[198,6,"CAR","CAR"],[199,6,"GB","GB"],[200,6,"HOU","CLE"],[201,6,"PIT","PIT"],[202,6,"NYG","NYG"],[203,6,"CIN","CIN"],[204,6,"NE","MIN"],[205,6,"NYG","JAX"],[206,6,"CHI","CHI"],[207,6,"NYJ","KC"],[208,6,"DEN","DEN"],[209,6,"DET","DET"],[210,6,"KC","SF"],[211,6,"BUF","BUF"],[222,7,"TEN","TEN"],[223,7,"DET","LAC"],[224,7,"PIT","MIA"],[225,7,"IND","IND"],[226,7,"CAR","NYJ"],[227,7,"ARI","ARI"],[228,7,"NE","PHI"],[229,7,"ATL","ATL"],[230,7,"TB","TB"],[231,7,"DEN","NO"],[232,7,"BAL","BAL"],[233,7,"BUF","LV"],[234,7,"CLE","HOU"],[235,7,"WAS","WAS"],[236,7,"PHI","DAL"],[237,7,"HOU","NE"],[238,7,"LAC","LAR"],[239,7,"SEA","SEA"],[240,7,"CAR","CAR"],[241,7,"CLE","CLE"],[242,7,"PIT","PIT"],[243,7,"GB","GB"],[244,7,"MIA","NYG"],[245,7,"CIN","CIN"],[246,7,"JAX","JAX"],[247,7,"MIN","MIN"],[248,7,"SF","KC"],[249,7,"CHI","CHI"],[250,7,"DET","DET"],[251,7,"DEN","DEN"],[252,7,"ARI","SF"],[253,7,"KC","BUF"]];
+// Compensatory picks, same shape. Projected (OverTheCap via Tankathon) until the NFL awards them; only awarded ones can be traded.
+let COMP_PICKS = [[97,3,"PHI","PHI"],[98,3,"CIN","CIN"],[99,3,"LAC","LAC"],[100,3,"SEA","SEA"],[101,3,"SEA","SEA"],[134,4,"GB","GB"],[135,4,"SEA","SEA"],[136,4,"DEN","DEN"],[137,4,"BUF","BUF"],[170,5,"JAX","JAX"],[171,5,"GB","GB"],[172,5,"IND","IND"],[173,5,"NYG","NYG"],[174,5,"GB","GB"],[175,5,"KC","KC"],[176,5,"SEA","SEA"],[177,5,"BAL","BAL"],[178,5,"SEA","SEA"],[179,5,"BAL","BAL"],[212,6,"MIN","MIN"],[213,6,"SEA","SEA"],[214,6,"JAX","JAX"],[215,6,"GB","GB"],[216,6,"JAX","JAX"],[217,6,"DET","DET"],[218,6,"ATL","ATL"],[219,6,"BAL","BAL"],[220,6,"IND","IND"],[221,6,"ATL","ATL"],[254,7,"DET","DET"],[255,7,"KC","KC"],[256,7,"MIA","MIA"],[257,7,"NE","NE"]];
+let COMP_AWARDED = false;
+let ORDER_META = { asOf: "2026-11-24T16:43:42Z", source: "Tankathon", live: false };
 // Round 1 original owners, worst projected record first; also the ranking used to project future picks
 const orderFrom = picks => picks.filter(p => p[1] === 1).map(p => p[3]);
 let ORDER = orderFrom(DRAFT_ORDER);
@@ -711,7 +718,7 @@ const BOARD = [["Jeremiah Smith","WR","Ohio State",75,223,"Junior",1,1],
 ["Ray Coney","LB","Texas A&M",74,240,"Senior",0,409],
 ["Beau Pribula","QB","Virginia",74,212,"RS Senior",0,410]];
 
-/* Pick value charts, picks 1–224, each rescaled so pick #1 = 1000.
+/* Pick value charts, picks 1–262 (compensatory picks push the last pick past #224), each rescaled so pick #1 = 1000.
    consensus = plain average of the five published charts below. */
 const CHARTS = {
   consensus: { name: "Consensus (average of 5)", src: "" },
@@ -722,12 +729,12 @@ const CHARTS = {
   stuart: { name: "Chase Stuart (2012)", src: "https://www.footballperspective.com/draft-value-chart/", kind: "Rookie-deal production" },
 };
 const VALUES = {
-  consensus:[1000,844.1,734.2,672.8,637.7,607.9,580.9,556.5,536.8,518.6,503.1,488.7,474.8,461.5,449.2,436.6,425.4,414.1,404.7,396,386,378.1,370.5,363.5,356.2,349.6,342.6,336.3,330.1,323.4,317.5,312.4,298.4,293.2,289.3,284.9,280.6,276.3,272.6,268.4,264.9,260.9,256.9,253.5,250.1,246.3,243,239.2,236.1,233,229.9,226.3,223.3,220.4,217.4,214.5,211.6,208.2,205.4,202.6,200.1,197.5,194.8,192.4,190.3,188,185.8,183.6,181.5,179.3,177.8,175.7,173.6,171.5,169.5,167.4,165.4,164,162.1,160,158.1,156.2,154.8,152.9,151,149.2,147.9,146,144.1,142.3,141.1,139.4,137.6,136.5,134.8,133.1,132,130.3,128.6,127.5,125.9,124.3,123.2,121.7,120.8,119.4,117.9,117,115.6,114.7,113.2,112.4,111,109.6,108.7,107.4,106.6,105.2,104.4,103.1,102.3,100.9,100.2,98.9,98.3,97,96.4,95.1,94.4,93.2,92.5,91.3,90.7,89.5,88.9,87.8,87.2,86,85.4,84.3,83.7,82.6,82,81.4,80.3,79.7,78.7,78.2,77,76.6,76,74.9,74.4,73.3,72.8,71.8,71.3,70.7,69.7,69.2,68.2,67.7,67.3,66.2,65.7,64.6,64.2,63.7,62.7,62.2,61.8,60.7,60.3,59.3,58.9,58.5,57.4,57,56.5,55.6,55.2,54.8,53.7,53.3,52.9,51.9,51.5,51.1,50.2,49.7,49.3,48.4,48,47.6,46.6,46.2,45.9,44.9,44.5,44.1,43.1,42.8,42.4,41.5,41.1,40.7,39.8,39.4,39.1,38.7,37.8,37.4,37.1,36.2,35.8,35.4,34.5,34.1,33.8,33.4,32.5,32.1,31.8,30.9],
-  jj:[1000,866.7,733.3,600,566.7,533.3,500,466.7,450,433.3,416.7,400,383.3,366.7,350,333.3,316.7,300,291.7,283.3,266.7,260,253.3,246.7,240,233.3,226.7,220,213.3,206.7,200,196.7,193.3,186.7,183.3,180,176.7,173.3,170,166.7,163.3,160,156.7,153.3,150,146.7,143.3,140,136.7,133.3,130,126.7,123.3,120,116.7,113.3,110,106.7,103.3,100,97.3,94.7,92,90,88.3,86.7,85,83.3,81.7,80,78.3,76.7,75,73.3,71.7,70,68.3,66.7,65,63.3,61.7,60,58.3,56.7,55,53.3,51.7,50,48.3,46.7,45.3,44,42.7,41.3,40,38.7,37.3,36,34.7,33.3,32,30.7,29.3,28.7,28,27.3,26.7,26,25.3,24.7,24,23.3,22.7,22,21.3,20.7,20,19.3,18.7,18,17.3,16.7,16.3,16,15.7,15.3,15,14.7,14.3,14,13.7,13.3,13.2,13,12.8,12.7,12.5,12.3,12.2,12,11.8,11.7,11.5,11.3,11.2,11,10.9,10.8,10.6,10.5,10.3,10.2,10.1,9.9,9.8,9.7,9.5,9.4,9.3,9.1,9,8.9,8.7,8.6,8.5,8.3,8.2,8.1,7.9,7.8,7.7,7.5,7.4,7.3,7.1,7,6.9,6.6,6.5,6.3,6.2,6.1,5.9,5.8,5.7,5.5,5.4,5.3,5.1,5,4.9,4.7,4.6,4.5,4.3,4.2,4.1,3.9,3.8,3.7,3.5,3.4,3.3,3.1,3,2.9,2.7,2.6,2.5,2.3,2.2,2.1,1.9,1.8,1.7,1.5,1.4,1.3,1,0.9,0.8,0.7,0.6,0.5],
-  hill:[1000,717.2,514.3,490.5,467.8,446.1,425.5,405.8,387,369.1,357.6,346.5,335.7,325.3,315.2,305.4,295.9,286.7,277.8,269.2,260.8,252.7,244.9,237.2,229.9,222.7,215.8,209.1,202.6,196.3,190.2,184.3,179.5,174.9,170.4,166,161.7,157.5,153.4,149.4,145.6,141.8,138.2,134.6,131.1,127.7,124.4,121.2,118.1,115,112,109.1,106.3,103.6,100.9,98.3,95.7,93.3,90.8,88.5,86.2,84,81.8,79.7,78,76.2,74.6,73,71.4,69.8,68.3,66.8,65.4,63.9,62.5,61.2,59.9,58.5,57.3,56,54.8,53.6,52.4,51.3,50.2,49.1,48,47,45.9,44.9,44,43,42.1,41.1,40.3,39.4,38.5,37.7,36.9,36.1,35.3,34.5,33.7,33,32.3,31.6,30.9,30.2,29.5,28.9,28.2,27.6,27,26.4,25.8,25.2,24.7,24.1,23.6,23.1,22.6,22.1,21.6,21.1,20.7,20.2,19.8,19.3,18.9,18.5,18.1,17.7,17.3,16.9,16.5,16.2,15.8,15.5,15.1,14.8,14.5,14.2,13.8,13.5,13.2,12.9,12.7,12.4,12.1,11.8,11.6,11.3,11.1,10.8,10.6,10.4,10.1,9.9,9.7,9.5,9.3,9.1,8.9,8.7,8.5,8.3,8.1,7.9,7.8,7.6,7.4,7.3,7.1,6.9,6.8,6.6,6.5,6.3,6.2,6.1,5.9,5.8,5.7,5.6,5.4,5.3,5.2,5.1,5,4.9,4.8,4.7,4.5,4.5,4.3,4.2,4.2,4.1,4,3.9,3.8,3.7,3.6,3.6,3.5,3.4,3.3,3.3,3.2,3.1,3,3,2.9,2.9,2.8,2.7,2.7,2.6,2.5,2.5,2.4,2.4,2.3,2.3],
-  fs:[1000,883,814.3,765.7,728,697.3,671.3,648.7,629,611,595,580.3,566.7,554.3,542.7,531.7,521.3,511.7,502.7,494,485.7,478,470.3,463,456.3,449.7,443.3,437,431.3,425.3,420,414.7,409.3,404.3,399.3,394.7,390,385.7,381,377,372.7,368.7,364.7,360.7,357,353.3,349.7,346,342.7,339.3,335.7,332.7,329.3,326.3,323,320,317,314,311.3,308.3,305.7,303,300,297.3,295,292.3,289.7,287.3,284.7,282.3,280,277.7,275.3,273,270.7,268.3,266.3,264,262,259.7,257.7,255.7,253.7,251.7,249.7,247.7,245.7,243.7,241.7,240,238,236.3,234.3,232.7,230.7,229,227.3,225.3,223.7,222,220.3,218.7,217,215.3,214,212.3,210.7,209,207.7,206,204.3,203,201.3,200,198.3,197,195.7,194,192.7,191.3,190,188.3,187,185.7,184.3,183,181.7,180.3,179,177.7,176.3,175.3,174,172.7,171.3,170,169,167.7,166.3,165.3,164,163,161.7,160.3,159.3,158,157,156,154.7,153.7,152.3,151.3,150.3,149,148,147,146,144.7,143.7,142.7,141.7,140.7,139.7,138.7,137.3,136.3,135.3,134.3,133.3,132.3,131.3,130.3,129.3,128.7,127.7,126.7,125.7,124.7,123.7,122.7,122,121,120,119,118,117.3,116.3,115.3,114.7,113.7,112.7,112,111,110,109.3,108.3,107.7,106.7,106,105,104,103.3,102.3,101.7,100.7,100,99.3,98.3,97.7,96.7,96,95,94.3,93.7,92.7,92,91.3,90.3,89.7,89,88,87.3,86.7,86],
-  harvard:[1000,880.9,811.4,762,723.6,692.3,666,642.9,622.7,604.7,588.4,573.4,559.6,546.9,535.2,524.1,513.5,503.8,494.5,485.6,477.4,469.3,461.8,454.3,447.4,440.8,434.1,428,422,416.1,410.4,405,354.2,350.4,346.5,342.7,339.1,335.4,331.8,328.3,325.1,321.7,318.4,315.2,312,308.9,305.9,302.9,300,297.2,294.4,291.5,288.7,286.1,283.5,280.8,278.2,275.6,273.2,270.7,268.3,265.7,263.4,261,258.8,256.6,254.3,252.1,249.9,247.7,245.7,243.4,241.4,239.4,237.4,235.3,233.3,231.3,229.5,227.5,225.6,223.8,221.8,220,218.2,216.5,214.7,212.9,211.1,209.5,207.6,206,204.4,202.8,201,199.4,197.7,196.3,194.7,193.1,191.5,190.1,188.4,187,185.4,184,182.6,181,179.5,178.1,176.7,175.3,173.9,172.5,171,169.8,168.4,167,165.8,164.4,163.2,161.7,160.5,159.1,157.9,156.7,155.5,154.1,152.9,151.6,150.4,149.2,148,146.8,145.6,144.6,143.3,142.1,140.9,139.9,138.7,137.5,136.5,135.3,134.2,133,132,131,129.8,128.8,127.8,126.6,125.6,124.5,123.5,122.5,121.3,120.3,119.3,118.3,117.3,116.3,115.4,114.4,113.4,112.4,111.4,110.4,109.6,108.6,107.6,106.6,105.7,104.7,103.9,102.9,101.9,101.1,100.1,99.3,98.3,97.5,96.6,95.6,94.8,94,93,92.2,91.4,90.4,89.6,88.8,87.9,87.1,86.1,85.3,84.5,83.7,82.9,82.1,81.3,80.5,79.7,78.9,78,77.2,76.4,75.6,74.8,74,73.4,72.6,71.8,71,70.2,69.3,68.5,67.7,66.9,66.1,65.3,64.5,63.7,62.9],
-  stuart:[1000,872.8,797.7,745.7,702.3,670.5,641.6,618.5,595.4,575.1,557.8,543.4,528.9,514.5,502.9,488.4,479.8,468.2,456.6,448,439.3,430.6,422,416.2,407.5,401.7,393.1,387.3,381.5,372.8,367.1,361.3,355.5,349.7,346.8,341,335.3,329.5,326.6,320.8,317.9,312.1,306.4,303.5,300.6,294.8,291.9,286.1,283.2,280.3,277.5,271.7,268.8,265.9,263,260.1,257.2,251.4,248.6,245.7,242.8,239.9,237,234.1,231.2,228.3,225.4,222.5,219.7,216.8,216.8,213.9,211,208.1,205.2,202.3,199.4,199.4,196.5,193.6,190.8,187.9,187.9,185,182.1,179.2,179.2,176.3,173.4,170.5,170.5,167.6,164.7,164.7,161.8,159,159,156.1,153.2,153.2,150.3,147.4,147.4,144.5,144.5,141.6,138.7,138.7,135.8,135.8,132.9,132.9,130.1,127.2,127.2,124.3,124.3,121.4,121.4,118.5,118.5,115.6,115.6,112.7,112.7,109.8,109.8,106.9,106.9,104,104,101.2,101.2,98.3,98.3,95.4,95.4,92.5,92.5,89.6,89.6,86.7,86.7,86.7,83.8,83.8,80.9,80.9,78,78,78,75.1,75.1,72.3,72.3,69.4,69.4,69.4,66.5,66.5,63.6,63.6,63.6,60.7,60.7,57.8,57.8,57.8,54.9,54.9,54.9,52,52,49.1,49.1,49.1,46.2,46.2,46.2,43.4,43.4,43.4,40.5,40.5,40.5,37.6,37.6,37.6,34.7,34.7,34.7,31.8,31.8,31.8,28.9,28.9,28.9,26,26,26,23.1,23.1,23.1,20.2,20.2,20.2,17.3,17.3,17.3,17.3,14.5,14.5,14.5,11.6,11.6,11.6,8.7,8.7,8.7,8.7,5.8,5.8,5.8,2.9]
+  consensus:[1000.0,844.1,734.2,672.8,637.7,607.9,580.9,556.5,536.8,518.6,503.1,488.7,474.8,461.5,449.2,436.6,425.4,414.1,404.7,396.0,386.0,378.1,370.5,363.5,356.2,349.6,342.6,336.3,330.1,323.4,317.5,312.4,298.4,293.2,289.3,284.9,280.6,276.3,272.6,268.4,264.9,260.9,256.9,253.5,250.1,246.3,243.0,239.2,236.1,233.0,229.9,226.3,223.3,220.4,217.4,214.5,211.6,208.2,205.4,202.6,200.1,197.5,194.8,192.4,190.3,188.0,185.8,183.6,181.5,179.3,177.8,175.7,173.6,171.5,169.5,167.4,165.4,164.0,162.1,160.0,158.1,156.2,154.8,152.9,151.0,149.2,147.9,146.0,144.1,142.3,141.1,139.4,137.6,136.5,134.8,133.1,132.0,130.3,128.6,127.5,125.9,124.3,123.2,121.7,120.8,119.4,117.9,117.0,115.6,114.7,113.2,112.4,111.0,109.6,108.7,107.4,106.6,105.2,104.4,103.1,102.3,100.9,100.2,98.9,98.3,97.0,96.4,95.1,94.4,93.2,92.5,91.3,90.7,89.5,88.9,87.8,87.2,86.0,85.4,84.3,83.7,82.6,82.0,81.4,80.3,79.7,78.7,78.2,77.0,76.6,76.0,74.9,74.4,73.3,72.8,71.8,71.3,70.7,69.7,69.2,68.2,67.7,67.3,66.2,65.7,64.6,64.2,63.7,62.7,62.2,61.8,60.7,60.3,59.3,58.9,58.5,57.4,57.0,56.5,55.6,55.2,54.8,53.7,53.3,52.9,51.9,51.5,51.1,50.2,49.7,49.3,48.4,48.0,47.6,46.6,46.2,45.9,44.9,44.5,44.1,43.1,42.8,42.4,41.5,41.1,40.7,39.8,39.4,39.1,38.7,37.8,37.4,37.1,36.2,35.8,35.4,34.5,34.1,33.8,33.4,32.5,32.1,31.8,30.9,30.4,29.9,29.6,29.3,28.9,28.6,28.3,28.0,27.7,27.3,27.0,26.7,26.4,26.1,25.8,25.5,25.1,24.8,24.5,24.2,23.9,23.6,23.3,23.0,22.7,22.4,22.1,21.8,21.5,21.2,20.9,20.6,20.3,20.0,19.7,19.4,19.1,18.8],
+  jj:[1000.0,866.7,733.3,600.0,566.7,533.3,500.0,466.7,450.0,433.3,416.7,400.0,383.3,366.7,350.0,333.3,316.7,300.0,291.7,283.3,266.7,260.0,253.3,246.7,240.0,233.3,226.7,220.0,213.3,206.7,200.0,196.7,193.3,186.7,183.3,180.0,176.7,173.3,170.0,166.7,163.3,160.0,156.7,153.3,150.0,146.7,143.3,140.0,136.7,133.3,130.0,126.7,123.3,120.0,116.7,113.3,110.0,106.7,103.3,100.0,97.3,94.7,92.0,90.0,88.3,86.7,85.0,83.3,81.7,80.0,78.3,76.7,75.0,73.3,71.7,70.0,68.3,66.7,65.0,63.3,61.7,60.0,58.3,56.7,55.0,53.3,51.7,50.0,48.3,46.7,45.3,44.0,42.7,41.3,40.0,38.7,37.3,36.0,34.7,33.3,32.0,30.7,29.3,28.7,28.0,27.3,26.7,26.0,25.3,24.7,24.0,23.3,22.7,22.0,21.3,20.7,20.0,19.3,18.7,18.0,17.3,16.7,16.3,16.0,15.7,15.3,15.0,14.7,14.3,14.0,13.7,13.3,13.2,13.0,12.8,12.7,12.5,12.3,12.2,12.0,11.8,11.7,11.5,11.3,11.2,11.0,10.9,10.8,10.6,10.5,10.3,10.2,10.1,9.9,9.8,9.7,9.5,9.4,9.3,9.1,9.0,8.9,8.7,8.6,8.5,8.3,8.2,8.1,7.9,7.8,7.7,7.5,7.4,7.3,7.1,7.0,6.9,6.6,6.5,6.3,6.2,6.1,5.9,5.8,5.7,5.5,5.4,5.3,5.1,5.0,4.9,4.7,4.6,4.5,4.3,4.2,4.1,3.9,3.8,3.7,3.5,3.4,3.3,3.1,3.0,2.9,2.7,2.6,2.5,2.3,2.2,2.1,1.9,1.8,1.7,1.5,1.4,1.3,1.0,0.9,0.8,0.7,0.6,0.5,0.5,0.4,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3],
+  hill:[1000.0,717.2,514.3,490.5,467.8,446.1,425.5,405.8,387.0,369.1,357.6,346.5,335.7,325.3,315.2,305.4,295.9,286.7,277.8,269.2,260.8,252.7,244.9,237.2,229.9,222.7,215.8,209.1,202.6,196.3,190.2,184.3,179.5,174.9,170.4,166.0,161.7,157.5,153.4,149.4,145.6,141.8,138.2,134.6,131.1,127.7,124.4,121.2,118.1,115.0,112.0,109.1,106.3,103.6,100.9,98.3,95.7,93.3,90.8,88.5,86.2,84.0,81.8,79.7,78.0,76.2,74.6,73.0,71.4,69.8,68.3,66.8,65.4,63.9,62.5,61.2,59.9,58.5,57.3,56.0,54.8,53.6,52.4,51.3,50.2,49.1,48.0,47.0,45.9,44.9,44.0,43.0,42.1,41.1,40.3,39.4,38.5,37.7,36.9,36.1,35.3,34.5,33.7,33.0,32.3,31.6,30.9,30.2,29.5,28.9,28.2,27.6,27.0,26.4,25.8,25.2,24.7,24.1,23.6,23.1,22.6,22.1,21.6,21.1,20.7,20.2,19.8,19.3,18.9,18.5,18.1,17.7,17.3,16.9,16.5,16.2,15.8,15.5,15.1,14.8,14.5,14.2,13.8,13.5,13.2,12.9,12.7,12.4,12.1,11.8,11.6,11.3,11.1,10.8,10.6,10.4,10.1,9.9,9.7,9.5,9.3,9.1,8.9,8.7,8.5,8.3,8.1,7.9,7.8,7.6,7.4,7.3,7.1,6.9,6.8,6.6,6.5,6.3,6.2,6.1,5.9,5.8,5.7,5.6,5.4,5.3,5.2,5.1,5.0,4.9,4.8,4.7,4.5,4.5,4.3,4.2,4.2,4.1,4.0,3.9,3.8,3.7,3.6,3.6,3.5,3.4,3.3,3.3,3.2,3.1,3.0,3.0,2.9,2.9,2.8,2.7,2.7,2.6,2.5,2.5,2.4,2.4,2.3,2.3,2.2,2.2,2.1,2.1,2.0,2.0,1.9,1.9,1.9,1.8,1.8,1.8,1.7,1.7,1.6,1.6,1.6,1.5,1.5,1.5,1.4,1.4,1.4,1.3,1.3,1.3,1.2,1.2,1.2,1.2,1.1,1.1,1.1,1.1,1.0,1.0,1.0,1.0],
+  fs:[1000.0,883.0,814.3,765.7,728.0,697.3,671.3,648.7,629.0,611.0,595.0,580.3,566.7,554.3,542.7,531.7,521.3,511.7,502.7,494.0,485.7,478.0,470.3,463.0,456.3,449.7,443.3,437.0,431.3,425.3,420.0,414.7,409.3,404.3,399.3,394.7,390.0,385.7,381.0,377.0,372.7,368.7,364.7,360.7,357.0,353.3,349.7,346.0,342.7,339.3,335.7,332.7,329.3,326.3,323.0,320.0,317.0,314.0,311.3,308.3,305.7,303.0,300.0,297.3,295.0,292.3,289.7,287.3,284.7,282.3,280.0,277.7,275.3,273.0,270.7,268.3,266.3,264.0,262.0,259.7,257.7,255.7,253.7,251.7,249.7,247.7,245.7,243.7,241.7,240.0,238.0,236.3,234.3,232.7,230.7,229.0,227.3,225.3,223.7,222.0,220.3,218.7,217.0,215.3,214.0,212.3,210.7,209.0,207.7,206.0,204.3,203.0,201.3,200.0,198.3,197.0,195.7,194.0,192.7,191.3,190.0,188.3,187.0,185.7,184.3,183.0,181.7,180.3,179.0,177.7,176.3,175.3,174.0,172.7,171.3,170.0,169.0,167.7,166.3,165.3,164.0,163.0,161.7,160.3,159.3,158.0,157.0,156.0,154.7,153.7,152.3,151.3,150.3,149.0,148.0,147.0,146.0,144.7,143.7,142.7,141.7,140.7,139.7,138.7,137.3,136.3,135.3,134.3,133.3,132.3,131.3,130.3,129.3,128.7,127.7,126.7,125.7,124.7,123.7,122.7,122.0,121.0,120.0,119.0,118.0,117.3,116.3,115.3,114.7,113.7,112.7,112.0,111.0,110.0,109.3,108.3,107.7,106.7,106.0,105.0,104.0,103.3,102.3,101.7,100.7,100.0,99.3,98.3,97.7,96.7,96.0,95.0,94.3,93.7,92.7,92.0,91.3,90.3,89.7,89.0,88.0,87.3,86.7,86.0,85.0,84.3,83.7,83.0,82.0,81.3,80.7,80.0,79.3,78.3,77.7,77.0,76.3,75.7,75.0,74.3,73.3,72.7,72.0,71.3,70.7,70.0,69.3,68.7,68.0,67.3,66.7,66.0,65.3,64.7,64.0,63.3,62.7,62.0,61.3,60.7,60.0,59.3],
+  harvard:[1000.0,880.9,811.4,762.0,723.6,692.3,666.0,642.9,622.7,604.7,588.4,573.4,559.6,546.9,535.2,524.1,513.5,503.8,494.5,485.6,477.4,469.3,461.8,454.3,447.4,440.8,434.1,428.0,422.0,416.1,410.4,405.0,354.2,350.4,346.5,342.7,339.1,335.4,331.8,328.3,325.1,321.7,318.4,315.2,312.0,308.9,305.9,302.9,300.0,297.2,294.4,291.5,288.7,286.1,283.5,280.8,278.2,275.6,273.2,270.7,268.3,265.7,263.4,261.0,258.8,256.6,254.3,252.1,249.9,247.7,245.7,243.4,241.4,239.4,237.4,235.3,233.3,231.3,229.5,227.5,225.6,223.8,221.8,220.0,218.2,216.5,214.7,212.9,211.1,209.5,207.6,206.0,204.4,202.8,201.0,199.4,197.7,196.3,194.7,193.1,191.5,190.1,188.4,187.0,185.4,184.0,182.6,181.0,179.5,178.1,176.7,175.3,173.9,172.5,171.0,169.8,168.4,167.0,165.8,164.4,163.2,161.7,160.5,159.1,157.9,156.7,155.5,154.1,152.9,151.6,150.4,149.2,148.0,146.8,145.6,144.6,143.3,142.1,140.9,139.9,138.7,137.5,136.5,135.3,134.2,133.0,132.0,131.0,129.8,128.8,127.8,126.6,125.6,124.5,123.5,122.5,121.3,120.3,119.3,118.3,117.3,116.3,115.4,114.4,113.4,112.4,111.4,110.4,109.6,108.6,107.6,106.6,105.7,104.7,103.9,102.9,101.9,101.1,100.1,99.3,98.3,97.5,96.6,95.6,94.8,94.0,93.0,92.2,91.4,90.4,89.6,88.8,87.9,87.1,86.1,85.3,84.5,83.7,82.9,82.1,81.3,80.5,79.7,78.9,78.0,77.2,76.4,75.6,74.8,74.0,73.4,72.6,71.8,71.0,70.2,69.3,68.5,67.7,66.9,66.1,65.3,64.5,63.7,62.9,62.1,61.3,60.5,59.6,58.8,58.0,57.2,56.4,55.6,54.8,54.0,53.2,52.4,51.6,50.7,49.9,49.1,48.3,47.5,46.7,45.9,45.1,44.3,43.5,42.7,41.9,41.0,40.2,39.4,38.6,37.8,37.0,36.2,35.4,34.6,33.8,33.0,32.1],
+  stuart:[1000.0,872.8,797.7,745.7,702.3,670.5,641.6,618.5,595.4,575.1,557.8,543.4,528.9,514.5,502.9,488.4,479.8,468.2,456.6,448.0,439.3,430.6,422.0,416.2,407.5,401.7,393.1,387.3,381.5,372.8,367.1,361.3,355.5,349.7,346.8,341.0,335.3,329.5,326.6,320.8,317.9,312.1,306.4,303.5,300.6,294.8,291.9,286.1,283.2,280.3,277.5,271.7,268.8,265.9,263.0,260.1,257.2,251.4,248.6,245.7,242.8,239.9,237.0,234.1,231.2,228.3,225.4,222.5,219.7,216.8,216.8,213.9,211.0,208.1,205.2,202.3,199.4,199.4,196.5,193.6,190.8,187.9,187.9,185.0,182.1,179.2,179.2,176.3,173.4,170.5,170.5,167.6,164.7,164.7,161.8,159.0,159.0,156.1,153.2,153.2,150.3,147.4,147.4,144.5,144.5,141.6,138.7,138.7,135.8,135.8,132.9,132.9,130.1,127.2,127.2,124.3,124.3,121.4,121.4,118.5,118.5,115.6,115.6,112.7,112.7,109.8,109.8,106.9,106.9,104.0,104.0,101.2,101.2,98.3,98.3,95.4,95.4,92.5,92.5,89.6,89.6,86.7,86.7,86.7,83.8,83.8,80.9,80.9,78.0,78.0,78.0,75.1,75.1,72.3,72.3,69.4,69.4,69.4,66.5,66.5,63.6,63.6,63.6,60.7,60.7,57.8,57.8,57.8,54.9,54.9,54.9,52.0,52.0,49.1,49.1,49.1,46.2,46.2,46.2,43.4,43.4,43.4,40.5,40.5,40.5,37.6,37.6,37.6,34.7,34.7,34.7,31.8,31.8,31.8,28.9,28.9,28.9,26.0,26.0,26.0,23.1,23.1,23.1,20.2,20.2,20.2,17.3,17.3,17.3,17.3,14.5,14.5,14.5,11.6,11.6,11.6,8.7,8.7,8.7,8.7,5.8,5.8,5.8,2.9,2.0,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4,1.4]
 };
 // Teams can trade picks up to three drafts ahead
 const FUTURE_YEARS = [2028, 2029, 2030];
@@ -891,9 +898,10 @@ const byId = id => PLAYERS.find(p => p.id === id);
 const team = abbr => TEAMS[abbr][0];
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
 const ft = h => h ? `${Math.floor(h / 12)}'${h % 12}"` : "—";
-const pickValue = n => Math.max(1, Math.round(VALUES[S.chart][Math.min(n, 224) - 1]));
+const LAST_VALUE = VALUES.consensus.length;
+const pickValue = n => Math.max(1, Math.round(VALUES[S.chart][Math.min(n, LAST_VALUE) - 1]));
 // Fractional slots (projected future picks) interpolate between neighboring picks
-const pickValueAt = x => { const lo = Math.floor(x), f = x - lo; return Math.round(pickValue(lo) * (1 - f) + pickValue(Math.min(224, lo + 1)) * f); };
+const pickValueAt = x => { const lo = Math.floor(x), f = x - lo; return Math.round(pickValue(lo) * (1 - f) + pickValue(Math.min(LAST_VALUE, lo + 1)) * f); };
 // Future picks drop one round per year out ("one round later" rule). Within that round the slot is projected from the
 // original team's current record, pulled toward the middle (16.5) the further out the year is, since records regress.
 const FUTURE_WEIGHT = { 2028: 0.5, 2029: 0.25, 2030: 0.1 };
@@ -915,10 +923,16 @@ function futureTrayHtml() {
     ${FUTURE_YEARS.map(y => `<span class="mypick">${y} · ${mine.filter(f => f.year === y).length} picks</span>`).join("")}
     ${got.map(f => `<span class="mypick done">'${String(f.year).slice(2)} R${f.round} via ${f.orig}</span>`).join("")}</div>`;
 }
-function buildPicks(rounds) {
-  const out = [];
-  return DRAFT_ORDER.filter(p => p[1] <= rounds).map(([no, round, owner, orig]) => ({ no, round, orig, owner, player: null, by: null }));
+// Regular and compensatory picks in pick order. A comp pick carries comp: true; until the NFL awards them they're
+// projections and can't be traded (tradable() is false), after which they're ordinary picks.
+function allPicks() {
+  return [...DRAFT_ORDER.map(p => [...p, false]), ...COMP_PICKS.map(p => [...p, true])].sort((a, b) => a[0] - b[0]);
 }
+function buildPicks(rounds) {
+  return allPicks().filter(p => p[1] <= rounds).map(([no, round, owner, orig, comp]) => ({ no, round, orig, owner, comp, player: null, by: null }));
+}
+const tradable = p => !p.comp || COMP_AWARDED;
+const compTag = p => p.comp ? `<span class="comp ${COMP_AWARDED ? "" : "proj"}" title="${COMP_AWARDED ? "Compensatory pick" : "Projected compensatory pick (OverTheCap via Tankathon). It can be traded once the NFL awards it in March."}">${COMP_AWARDED ? "Comp" : "Proj. comp"}</span>` : "";
 const current = () => S.picks.find(p => !p.player);
 const isUser = p => p && S.user.has(p.owner);
 const takenIds = () => new Set(S.picks.filter(p => p.player).map(p => p.player));
@@ -966,6 +980,7 @@ function initOffers() { S.offerEvents = 3 + Math.floor(Math.random() * 3); S.off
 function maybeOffers(pk) {
   if (!S.cpuOffers || pk.no in S.offersFor) return;
   S.offersFor[pk.no] = [];
+  if (!tradable(pk)) return;
   const left = S.picks.filter(p => !p.player && isUser(p)).length;
   if (S.offerEvents <= 0 || Math.random() >= S.offerEvents / Math.max(1, left)) return;
   const offers = buildOffers(pk);
@@ -1026,7 +1041,7 @@ function buildPackage(abbr, userVal, windowEnd, late = false) {
   const lo = userVal * OFFER_RANGE[0], hi = late ? userVal * 3 : userVal * OFFER_RANGE[1];
   const futureOk = f => f.owner === abbr && f.year <= 2029 && (late ? f.round >= 6 : f.round <= 4);
   const assets = [
-    ...S.picks.filter(p => p.owner === abbr && !p.player && p.no > current().no).map(p => ({ k: "P-" + p.no, near: p.no <= windowEnd })),
+    ...S.picks.filter(p => p.owner === abbr && !p.player && p.no > current().no && tradable(p)).map(p => ({ k: "P-" + p.no, near: p.no <= windowEnd })),
     ...(S.futures ? S.future.filter(futureOk).map(f => ({ k: f.key, near: false, sweet: late })) : []),
   ].map(x => ({ ...x, v: assetValue(x.k) })).filter(x => x.v < hi);
   const found = searchPackages(assets, lo, hi, late);
@@ -1089,7 +1104,7 @@ function renderSetup() {
   <div class="setup-head">
     <div><h1>Pick your <span style="color:var(--accent)">team</span></h1>
     <p>Select one or more teams to control. Every other team is run by the computer, which weighs the big board against its own needs.</p>
-    <p class="note" id="order-note">Projected order and traded picks from Tankathon (${fmtAsOf(ORDER_META.asOf)}${ORDER_META.live ? ", live" : ""}); records from ESPN. Playoff teams are placed by record until the playoffs set them. Pick numbers skip the projected compensatory slots, which aren't included.</p></div>
+    <p class="note" id="order-note">Projected order and traded picks from Tankathon (${fmtAsOf(ORDER_META.asOf)}${ORDER_META.live ? ", live" : ""}); records from ESPN. Playoff teams are placed by record until the playoffs set them. ${COMP_PICKS.length ? `Includes ${COMP_PICKS.length} ${COMP_AWARDED ? "compensatory picks awarded by the NFL" : "projected compensatory picks (OverTheCap), which can't be traded until the NFL awards them in March"}.` : ""}</p></div>
     <button class="btn" id="all">${all ? "Clear selection" : "Control every team"}</button>
   </div>
   <div class="teams">${list.map(({ t, pk }) => `
@@ -1169,7 +1184,7 @@ function renderRoom() {
   ${S.phase === "done" ? resultsHtml() : ""}
   ${pk ? `<section class="clock ${mine ? "mine" : ""}">
       <div class="pickno num">${pk.no}</div>
-      <div class="who">${badge(pk.owner, "lg")}<div><div class="label">${mine ? "You're on the clock" : "On the clock"} · Round ${pk.round}</div><h2>${team(pk.owner)}</h2>${pk.owner !== pk.orig ? `<div class="note">via ${pk.orig}</div>` : ""}</div></div>
+      <div class="who">${badge(pk.owner, "lg")}<div><div class="label">${mine ? "You're on the clock" : "On the clock"} · Round ${pk.round}${pk.comp ? ` · ${COMP_AWARDED ? "comp pick" : "projected comp pick"}` : ""}</div><h2>${team(pk.owner)}</h2>${pk.owner !== pk.orig ? `<div class="note">via ${pk.orig}</div>` : ""}</div></div>
       <div class="needs-wrap"><div class="label" style="margin-bottom:4px">Top needs</div><div class="needs">${NEEDS[pk.owner].map(n => `<span class="pos ${draftedPositions(pk.owner).includes(n) ? "filled" : ""}">${n}</span>`).join("")}</div></div>
     </section>` : ""}
   ${pk && mine && !S.running ? offersHtml(pk) : ""}
@@ -1188,7 +1203,7 @@ function renderRoom() {
       <div class="panel-head"><h3>Draft board</h3>
         <select id="bview" class="search" style="width:auto"><option value="all">All picks</option><option value="mine" ${S.boardView === "mine" ? "selected" : ""}>My picks</option></select></div>
       <div class="scroll" id="boardScroll">${boardHtml()}</div>
-      <div class="mypicks"><span class="label" style="align-self:center">Your picks</span>${userPicks.map(p => `<span class="mypick ${p.player ? "done" : ""}">R${p.round} · #${p.no}${S.user.size > 1 ? " " + p.owner : ""}</span>`).join("") || `<span class="note">None. Trade for one.</span>`}</div>
+      <div class="mypicks"><span class="label" style="align-self:center">Your picks</span>${userPicks.map(p => `<span class="mypick ${p.player ? "done" : ""}">R${p.round} · #${p.no}${p.comp ? "c" : ""}${S.user.size > 1 ? " " + p.owner : ""}</span>`).join("") || `<span class="note">None. Trade for one.</span>`}</div>
       ${S.futures ? futureTrayHtml() : ""}
     </section>
     <section class="panel">
@@ -1212,7 +1227,7 @@ function boardHtml() {
     const pl = p.player && byId(p.player);
     html += `<div class="pick ${p === cur ? "current" : ""} ${S.user.has(p.owner) ? "mine" : ""}">
       <span class="no num">${p.no}</span>${badge(p.owner)}
-      <div style="min-width:0"><div class="tm">${team(p.owner)}${p.owner !== p.orig ? `<span class="via">via ${p.orig}</span>` : ""}</div>
+      <div style="min-width:0"><div class="tm">${team(p.owner)}${p.owner !== p.orig ? `<span class="via">via ${p.orig}</span>` : ""}${compTag(p)}</div>
       ${pl ? `<div class="sel"><span class="pos">${pl.pos}</span><b>${esc(pl.name)}</b><span class="sch">${esc(pl.school)} · #${pl.rank}</span></div>`
            : `<div class="waiting">${p === cur ? "On the clock" : NEEDS[p.owner].join(" · ")}</div>`}</div></div>`;
   }
@@ -1301,7 +1316,7 @@ const assetOf = key => key[0] === "P" ? S.picks.find(p => p.no === +key.slice(2)
 const assetValue = key => { const a = assetOf(key); return key[0] === "P" ? pickValue(a.no) : pickValueAt(futureSlot(a.round, a.year, a.orig)); };
 function assetLabel(key, withTeam = false) {
   const a = assetOf(key);
-  return key[0] === "P" ? `R${a.round} · #${a.no}` : `${a.year} R${a.round}${withTeam || a.owner !== a.orig ? ` (${a.orig})` : ""}`;
+  return key[0] === "P" ? `R${a.round} · #${a.no}${a.comp ? " (comp)" : ""}` : `${a.year} R${a.round}${withTeam || a.owner !== a.orig ? ` (${a.orig})` : ""}`;
 }
 function openTrade() {
   const pk = current();
@@ -1310,7 +1325,7 @@ function openTrade() {
   // every team) any other team — trades between two of your own teams go through without a value check
   T.partner = pk && pk.owner !== T.mine ? pk.owner : otherTeam(T.mine);
   T.give = new Set(); T.get = new Set(); T.counter = null;
-  if (pk && pk.owner === T.partner) T.get.add("P-" + pk.no);
+  if (pk && pk.owner === T.partner && tradable(pk)) T.get.add("P-" + pk.no);
   if (!T.partner) { toast("There's no other team to trade with"); return; }
   renderTrade();
 }
@@ -1327,7 +1342,7 @@ function valuesTableHtml() {
 function renderTrade() {
   const openVals = overlay.querySelector("#vals")?.open;
   const keysFor = owner => [
-    ...S.picks.filter(p => p.owner === owner && !p.player).map(p => "P-" + p.no),
+    ...S.picks.filter(p => p.owner === owner && !p.player && tradable(p)).map(p => "P-" + p.no),
     ...(S.futures ? S.future.filter(f => f.owner === owner).map(f => f.key) : []),
   ];
   const sum = set => [...set].reduce((a, k) => a + assetValue(k), 0);
@@ -1408,20 +1423,21 @@ function showView(v) {
   v === "chart" ? renderChart() : S.phase === "setup" ? renderSetup() : renderRoom();
 }
 function chartAssets() {
-  const picks = DRAFT_ORDER.map(([no, round, owner, orig]) => ({ key: "P-" + no, no, round, owner, orig }));
+  const picks = allPicks().map(([no, round, owner, orig, comp]) => ({ key: "P-" + no, no, round, owner, orig, comp }));
   const future = buildFuture();
   return { picks, future, all: new Map([...picks, ...future].map(a => [a.key, a])) };
 }
 const chartValue = a => a.no ? pickValue(a.no) : pickValueAt(futureSlot(a.round, a.year, a.orig));
-const chartLabel = a => a.no ? `R${a.round} · #${a.no}${a.owner !== a.orig ? ` (via ${a.orig})` : ""}` : `${a.year} R${a.round}`;
+const chartLabel = a => a.no ? `R${a.round} · #${a.no}${a.comp ? " comp" : ""}${a.owner !== a.orig ? ` (via ${a.orig})` : ""}` : `${a.year} R${a.round}`;
 // What each other team would offer to move up to this pick, by the CPU offer rules (see buildPackage)
 function shopOffers(pk, A) {
   const val = pickValue(pk.no), late = pk.round >= 6, out = [];
+  if (!tradable(pk)) return out;
   const lo = val * OFFER_RANGE[0], hi = late ? val * 3 : val * OFFER_RANGE[1];
   for (const t of Object.keys(TEAMS)) {
     if (t === pk.owner) continue;
     const assets = [
-      ...A.picks.filter(p => p.owner === t && p.no > pk.no).map(p => ({ k: p.key, near: p.no <= pk.no + 40 })),
+      ...A.picks.filter(p => p.owner === t && p.no > pk.no && tradable(p)).map(p => ({ k: p.key, near: p.no <= pk.no + 40 })),
       ...A.future.filter(f => f.owner === t && f.year <= 2029 && (late ? f.round >= 6 : f.round <= 4)).map(f => ({ k: f.key, near: false, sweet: late })),
     ].map(x => ({ ...x, v: chartValue(A.all.get(x.k)) })).filter(x => x.v < hi);
     const best = searchPackages(assets, lo, hi, late)[0];
@@ -1449,7 +1465,7 @@ function renderChart() {
   const A = chartAssets(), teams = Object.keys(TEAMS);
   if (!TEAMS[C.a]) C.a = "DET";
   if (!C.b || C.b === C.a) C.b = ORDER.find(t => t !== C.a);
-  const owned = (set, t) => new Set([...set].filter(k => A.all.get(k)?.owner === t));
+  const owned = (set, t) => new Set([...set].filter(k => A.all.get(k)?.owner === t && tradable(A.all.get(k))));
   C.give = owned(C.give, C.a); C.get = owned(C.get, C.b);
   const val = k => chartValue(A.all.get(k)), sum = set => [...set].reduce((s, k) => s + val(k), 0);
   const ga = sum(C.give), gb = sum(C.get), diff = ga - gb;
@@ -1457,7 +1473,7 @@ function renderChart() {
 
   const col = (side, t, set, total) => {
     const ks = [...A.picks.filter(p => p.owner === t), ...A.future.filter(f => f.owner === t)];
-    const row = a => `<label><span><input type="checkbox" data-c${side}="${a.key}" ${set.has(a.key) ? "checked" : ""}> ${esc(chartLabel(a))}</span><span class="num note">${a.no ? "" : `like #${Math.round(futureSlot(a.round, a.year, a.orig))} · `}${chartValue(a)} pts</span></label>`;
+    const row = a => `<label ${tradable(a) ? "" : `title="Projected comp pick: it can be traded once the NFL awards it in March" style="opacity:.55;cursor:default"`}><span><input type="checkbox" data-c${side}="${a.key}" ${set.has(a.key) ? "checked" : ""} ${tradable(a) ? "" : "disabled"}> ${esc(chartLabel(a))}${tradable(a) ? "" : " (projected)"}</span><span class="num note">${a.no ? "" : `like #${Math.round(futureSlot(a.round, a.year, a.orig))} · `}${chartValue(a)} pts</span></label>`;
     const groups = [["2027 picks", ks.filter(a => a.no)], ...FUTURE_YEARS.map(y => [`${y} picks`, ks.filter(a => a.year === y)])].filter(g => g[1].length);
     return `<div class="trade-col"><header>${badge(t, "xs")}<select id="c-team-${side}" aria-label="Team ${side.toUpperCase()}">${teams.map(x => `<option value="${x}" ${x === t ? "selected" : ""}>${team(x)}</option>`).join("")}</select></header>
       <div class="assets" id="cx-${side}">${groups.map(([h, list]) => `<div class="grp label">${h}</div>${list.map(row).join("")}`).join("")}</div>
@@ -1477,14 +1493,14 @@ function renderChart() {
   const rounds = [1, 2, 3, 4, 5, 6, 7].map(r => A.picks.filter(p => p.round === r)), depth = Math.max(...rounds.map(r => r.length));
   const inDeal = new Set([...C.give, ...C.get]);
   const minePicks = A.picks.filter(p => p.owner === C.a), mineFuture = A.future.filter(f => f.owner === C.a && f.year === FUTURE_YEARS[0]);
-  const cell = p => p ? `<button class="vcell ${p.owner === C.a ? "mine" : ""} ${inDeal.has(p.key) ? "in" : ""}" data-pick="${p.key}" title="#${p.no} ${team(p.owner)}${p.owner !== p.orig ? ` (via ${p.orig})` : ""}: ${pickValue(p.no)} pts">
+  const cell = p => p ? `<button class="vcell ${p.owner === C.a ? "mine" : ""} ${inDeal.has(p.key) ? "in" : ""} ${p.comp ? (tradable(p) ? "comp" : "comp proj") : ""}" data-pick="${p.key}" title="#${p.no} ${team(p.owner)}${p.owner !== p.orig ? ` (via ${p.orig})` : ""}${p.comp ? (tradable(p) ? ", compensatory pick" : ", projected compensatory pick") : ""}: ${pickValue(p.no)} pts">
     <span class="no">${p.no}</span>${badge(p.owner, "xs")}<span class="v">${pickValue(p.no)}</span></button>` : "";
 
   app.innerHTML = `
   <div class="setup-head">
     <div><h1>Trade value <span style="color:var(--accent)">chart</span></h1>
     <p>Every 2027 pick, valued on the chart you choose. Build a trade between any two teams, or shop a pick to see what each team would offer for it.</p>
-    <p class="note">Projected order and traded picks from Tankathon (${fmtAsOf(ORDER_META.asOf)}${ORDER_META.live ? ", live" : ""}). Projected compensatory picks aren't included. Nothing here changes your mock draft.</p></div>
+    <p class="note">Projected order and traded picks from Tankathon (${fmtAsOf(ORDER_META.asOf)}${ORDER_META.live ? ", live" : ""}).${COMP_PICKS.length ? (COMP_AWARDED ? ` Compensatory picks as awarded by the NFL are marked C.` : ` Projected compensatory picks (OverTheCap) are marked C with a dashed outline; they can be traded once the NFL awards them in March.`) : ""} Nothing here changes your mock draft.</p></div>
     <label class="field"><span class="label">Value chart</span>
       <select id="c-chart">${Object.entries(CHARTS).map(([k, v]) => `<option value="${k}" ${S.chart === k ? "selected" : ""}>${v.name}</option>`).join("")}</select></label>
   </div>
@@ -1501,10 +1517,10 @@ function renderChart() {
     </section>
     <section class="panel">
       <div class="panel-head"><h3>Shop a pick</h3>
-        <select id="c-shop" class="search" style="width:auto" aria-label="Pick to shop">${rounds.map((r, i) => `<optgroup label="Round ${i + 1}">${r.map(p => `<option value="${p.no}" ${p.no === shopPk.no ? "selected" : ""}>#${p.no} ${p.owner}</option>`).join("")}</optgroup>`).join("")}</select></div>
+        <select id="c-shop" class="search" style="width:auto" aria-label="Pick to shop">${rounds.map((r, i) => `<optgroup label="Round ${i + 1}">${r.map(p => `<option value="${p.no}" ${p.no === shopPk.no ? "selected" : ""}>#${p.no} ${p.owner}${p.comp ? " (comp)" : ""}</option>`).join("")}</optgroup>`).join("")}</select></div>
       <div class="panel-body">
         <p class="note">Who would trade up to <b>#${shopPk.no}</b> (${team(shopPk.owner)}, ${shopVal} pts), using the mock draft's CPU offer rules: a pick within about a round after it, worth ${shopPk.round >= 6 ? "at least its value plus a 2028 or 2029 6th or 7th" : `${Math.round(OFFER_RANGE[0] * 100)}–${Math.round(OFFER_RANGE[1] * 100)}% of its value`}.</p>
-        <div class="shop-list" id="shop-list">${offers.length ? offers.map((o, i) => `<div class="offer">${badge(o.team)}
+        <div class="shop-list" id="shop-list">${!tradable(shopPk) ? `<p class="note" style="padding-top:10px">#${shopPk.no} is a projected compensatory pick, so it can't be traded until the NFL awards it in March.</p>` : offers.length ? offers.map((o, i) => `<div class="offer">${badge(o.team)}
           <div style="min-width:0"><b>${team(o.team)}</b><div class="pkg">${o.keys.map(k => esc(chartLabel(A.all.get(k)))).join(" + ")}</div>
           <div class="note num">${o.value} pts (+${Math.round((o.value / shopVal - 1) * 100)}%)</div></div>
           <div class="acts"><button class="btn sm" data-load="${i}">Load</button></div></div>`).join("") : `<p class="note" style="padding-top:10px">No team has the picks for a package that fits.</p>`}</div>
@@ -1538,7 +1554,7 @@ function renderChart() {
   app.querySelectorAll("[data-fill]").forEach(b => b.onclick = () => {
     const side = b.dataset.fill, t = side === "a" ? C.a : C.b, other = side === "a" ? gb : ga;
     if (!other) { toast(`Pick what ${team(side === "a" ? C.b : C.a)} send first.`); return; }
-    const assets = [...A.picks, ...A.future].filter(x => x.owner === t).map(x => ({ k: x.key, v: chartValue(x), near: true })).filter(x => x.v <= other * 1.15);
+    const assets = [...A.picks, ...A.future].filter(x => x.owner === t && tradable(x)).map(x => ({ k: x.key, v: chartValue(x), near: true })).filter(x => x.v <= other * 1.15);
     const best = searchPackages(assets, other, other * 1.15)[0];
     if (!best) { toast(`${team(t)} don't have picks that add up to ${other} pts.`); return; }
     if (side === "a") C.give = new Set(best.keys); else C.get = new Set(best.keys);
@@ -1552,6 +1568,7 @@ function renderChart() {
   });
   app.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
     const p = A.all.get(b.dataset.pick), tog = set => set.has(p.key) ? set.delete(p.key) : set.add(p.key);
+    if (!tradable(p)) { toast(`#${p.no} is a projected comp pick. It can be traded once the NFL awards it in March.`); return; }
     if (p.owner === C.a) tog(C.give);
     else if (p.owner === C.b) tog(C.get);
     else { C.b = p.owner; C.get = new Set([p.key]); }
@@ -1825,7 +1842,7 @@ function saveMock() {
   const mock = {
     id: S.mockId, at: new Date().toISOString(), user: [...S.user], rounds: S.rounds, chart: S.chart, priority: S.priority,
     futures: S.futures, source: boardSource, grades: teams.map(t => [t, classGrade(t)]),
-    picks: S.picks.map(({ no, round, orig, owner, player, by }) => ({ no, round, orig, owner, player, by })), trades: S.trades,
+    picks: S.picks.map(({ no, round, orig, owner, comp, player, by }) => ({ no, round, orig, owner, comp: !!comp, player, by })), trades: S.trades,
     movedFuture: S.future.filter(f => f.owner !== f.orig).map(f => [f.key, f.owner]),
     players: drafted.map(p => byId(p.player)),
   };
@@ -1902,8 +1919,18 @@ function applyOrder(body) {
   const okRow = p => Array.isArray(p) && p.length === 4 && Number.isInteger(p[0]) && p[0] > 0 && p[0] < 300 && Number.isInteger(p[1]) && p[1] >= 1 && p[1] <= 7 && codes.includes(p[2]) && codes.includes(p[3]);
   if (!Array.isArray(picks) || picks.length !== 224 || !picks.every(okRow)) return;
   for (let r = 1; r <= 7; r++) if (new Set(picks.filter(p => p[1] === r).map(p => p[3])).size !== 32) return;
-  const changed = JSON.stringify(picks) !== JSON.stringify(DRAFT_ORDER);
+  // Comp picks: rounds 3–7, numbers that don't collide with regular picks and stay inside their round.
+  // An order file without them (or with bad ones) keeps the current list if it still fits, else none.
+  const fits = comp => {
+    if (!Array.isArray(comp) || comp.length > 40 || !comp.every(p => okRow(p) && p[1] >= 3)) return false;
+    const every = [...picks, ...comp].sort((a, b) => a[0] - b[0]);
+    return new Set(every.map(p => p[0])).size === every.length && every.every((p, i) => !i || p[1] >= every[i - 1][1]);
+  };
+  const comp = fits(body.comp) ? body.comp : fits(COMP_PICKS) ? COMP_PICKS : [];
+  const awarded = typeof body.compAwarded === "boolean" ? body.compAwarded : COMP_AWARDED;
+  const changed = JSON.stringify(picks) !== JSON.stringify(DRAFT_ORDER) || JSON.stringify(comp) !== JSON.stringify(COMP_PICKS) || awarded !== COMP_AWARDED;
   DRAFT_ORDER = picks.map(p => p.slice());
+  COMP_PICKS = comp.map(p => p.slice()); COMP_AWARDED = awarded;
   ORDER_META = { asOf: String(body.asOf || ""), source: "Tankathon", live: true };
   ORDER = orderFrom(DRAFT_ORDER);
   liveChanged(changed, "Draft order updated");
