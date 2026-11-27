@@ -612,6 +612,29 @@ function buildBoard(key) {
   list.forEach(p => { if (!p.posRank) p.posRank = next[p.pos] = (next[p.pos] || 0) + 1; });
   return withBoardRanks(list);
 }
+// Board views in the draft room: the computer drafts from S.board, but the prospect list can show any board's ranks.
+// At the start of a draft every board's ranks are captured (S.viewRanks: key → Map(id → [rank, posRank])), and players
+// that only another board lists (sheet-only names) join the pool at the bottom of the draft board so they can be picked.
+function prepareViews() {
+  S.viewRanks = {}; S.viewBoard = S.board;
+  if (S.board === "custom") return;  // a pasted board has its own player ids, so it can't be lined up with the others
+  const have = new Set(PLAYERS.map(p => p.id)), extra = [];
+  for (const k of boardChoices()) {
+    if (k === S.board) continue;
+    const list = k === "general" ? withBoardRanks(withPosRanks(defaultPlayers())) : buildBoard(k);
+    S.viewRanks[k] = new Map(list.map(p => [p.id, [p.rank, p.posRank]]));
+    for (const p of list) if (!have.has(p.id)) { have.add(p.id); extra.push(p); }
+  }
+  if (extra.length) {
+    const top = {};
+    PLAYERS.forEach(p => top[p.pos] = Math.max(top[p.pos] || 0, p.posRank || 0));
+    PLAYERS = [...PLAYERS, ...extra.map((p, i) => ({ ...p, rank: PLAYERS.length + i + 1, posRank: top[p.pos] = (top[p.pos] || 0) + 1 }))];
+  }
+  S.viewRanks[S.board] = new Map(PLAYERS.map(p => [p.id, [p.rank, p.posRank]]));
+}
+// [rank, posRank] of a player on the board being viewed (Infinity if that board doesn't list him)
+const viewRank = p => S.viewBoard === S.board || !S.viewRanks?.[S.viewBoard] ? [p.rank, p.posRank] : S.viewRanks[S.viewBoard].get(p.id) || [Infinity, Infinity];
+const viewing = () => S.viewBoard && S.viewBoard !== S.board && S.viewRanks?.[S.viewBoard];
 function useBoard(key) {
   if (!boardChoices().includes(key)) key = "general";
   S.board = key;
@@ -862,7 +885,7 @@ function renderSetup() {
     </button>`).join("")}
   </div>
   <div class="options">
-    ${boardChoices().length > 1 ? `<label class="field"><span class="label">Big board</span>
+    ${boardChoices().length > 1 ? `<label class="field" title="The computer drafts from this board. You can view the others during the draft."><span class="label">Big board (CPU drafts from)</span>
       <select id="o-board">${boardChoices().map(k => `<option value="${k}" ${S.board === k ? "selected" : ""}>${BOARD_LABELS[k]}</option>`).join("")}${S.board === "custom" ? `<option value="custom" selected>Your pasted board</option>` : ""}</select>
       ${creditHtml(S.board) ? `<small class="credit">${creditHtml(S.board)}</small>` : ""}</label>` : ""}
     <label class="field"><span class="label">CPU priorities</span>
@@ -915,6 +938,7 @@ function loadCsv() {
   renderSetup(); toast(`Loaded ${out.length} prospects${bad.length ? `, skipped ${bad.length} lines` : ""}`);
 }
 function startRoom() {
+  prepareViews();
   S.picks = buildPicks(S.rounds); S.future = buildFuture(); S.phase = "draft"; S.running = false; S.trades = []; S.posFilter = new Set(); S.query = ""; S.mockId = Date.now(); initOffers();
   showRoom();
 }
@@ -955,10 +979,12 @@ function renderRoom() {
       ${S.futures ? futureTrayHtml() : ""}
     </section>
     <section class="panel">
-      <div class="panel-head"><div><h3>Available prospects</h3><div class="note hint">Tap several positions to filter them together.</div></div><input class="search" id="q" type="search" placeholder="Search name or school" value="${esc(S.query)}"></div>
+      <div class="panel-head"><div><h3>Available prospects</h3><div class="note hint">Tap several positions to filter them together.</div></div>
+        <div class="row">${Object.keys(S.viewRanks || {}).length > 1 ? `<select id="vboard" class="search" style="width:auto" aria-label="Board to view">${[S.board, ...Object.keys(S.viewRanks).filter(k => k !== S.board)].map(k => `<option value="${k}" ${k === S.viewBoard ? "selected" : ""}>${esc(BOARD_LABELS[k])}${k === S.board ? " (CPU)" : ""}</option>`).join("")}</select>` : ""}<input class="search" id="q" type="search" placeholder="Search name or school" value="${esc(S.query)}"></div></div>
+      ${viewing() ? `<div class="view-note">Viewing <b>${esc(BOARD_LABELS[S.viewBoard])}</b>. The computer still drafts from ${esc(BOARD_LABELS[S.board])}; its rank is under each number.</div>` : ""}
       <div class="filters">${["ALL", ...POSITIONS.filter(p => PLAYERS.some(x => x.pos === p))].map(p => `<button class="chip" data-pos="${p}" aria-pressed="${p === "ALL" ? !S.posFilter.size : S.posFilter.has(p)}">${p === "ALL" ? "All" : p}</button>`).join("")}</div>
       <div class="scroll" id="prospScroll">${prospectsHtml(pk, mine)}</div>
-      <div class="note" style="padding:8px 12px;border-top:1px solid var(--line)">${esc(boardSource)}${creditHtml(S.board) ? ` · ${creditHtml(S.board)}` : ""}. Click a row for the profile.</div>
+      <div class="note" style="padding:8px 12px;border-top:1px solid var(--line)">${viewing() ? `Showing ${esc(BOARD_LABELS[S.viewBoard])}${creditHtml(S.viewBoard) ? ` · ${creditHtml(S.viewBoard)}` : ""}. Computer drafts from ${esc(boardSource)}` : `${esc(boardSource)}${creditHtml(S.board) ? ` · ${creditHtml(S.board)}` : ""}`}. Click a row for the profile.</div>
     </section>
   </div>`;
   bindRoom();
@@ -984,14 +1010,16 @@ function boardHtml() {
 function prospectsHtml(pk, mine) {
   const q = S.query.toLowerCase(), needs = pk ? openNeeds(pk.owner) : [];
   const rows = available().filter(p => (!S.posFilter.size || S.posFilter.has(p.pos)) && (!q || (p.name + " " + p.school).toLowerCase().includes(q)));
-  // Position-rank sort: every position's #1, then every #2 …, ties broken by overall rank
-  if (S.sortBy === "pos") rows.sort((a, b) => a.posRank - b.posRank || a.rank - b.rank);
+  // Ranks shown are the viewed board's; position-rank sort: every position's #1, then every #2 …, ties by overall rank
+  const vr = new Map(rows.map(p => [p.id, viewRank(p)])), other = viewing();
+  if (S.sortBy === "pos") rows.sort((a, b) => vr.get(a.id)[1] - vr.get(b.id)[1] || vr.get(a.id)[0] - vr.get(b.id)[0] || a.rank - b.rank);
+  else if (other) rows.sort((a, b) => vr.get(a.id)[0] - vr.get(b.id)[0] || a.rank - b.rank);
   if (!rows.length) return `<p class="note" style="padding:12px">No prospects match.</p>`;
   const head = (key, label) => `<th class="label"><button class="sort-btn" data-sort="${key}" aria-pressed="${S.sortBy === key}">${label}${S.sortBy === key ? " ▾" : ""}</button></th>`;
   return `<table class="board"><thead><tr>${head("overall", "Rank")}${head("pos", "Pos rk")}<th class="label">Prospect</th><th></th></tr></thead><tbody>
     ${rows.slice(0, 150).map(p => `<tr class="p" data-id="${p.id}">
-      <td class="rk">${p.rank}</td>
-      <td class="prk">${p.pos}${p.posRank}</td>
+      <td class="rk">${vr.get(p.id)[0] === Infinity ? "—" : vr.get(p.id)[0]}${other ? `<div class="cpu-rk" title="Rank on ${esc(BOARD_LABELS[S.board])}, which the computer drafts from">CPU ${p.rank}</div>` : ""}</td>
+      <td class="prk">${vr.get(p.id)[1] === Infinity ? "—" : p.pos + vr.get(p.id)[1]}</td>
       <td><span class="pos">${p.pos}</span> <span class="pn">${esc(p.name)}</span>${needs.includes(p.pos) ? `<span class="need-dot">NEED</span>` : ""}<div class="ps">${esc(p.school)}${p.ht ? ` · ${ft(p.ht)}, ${p.wt} lb` : ""}</div></td>
       <td class="act">${mine && !S.running ? `<button class="btn primary sm" data-draft="${p.id}">Draft</button>` : ""}</td></tr>`).join("")}
   </tbody></table>`;
@@ -1006,6 +1034,7 @@ function bindRoom() {
   $("#setup").onclick = () => { clearTimeout(timer); S.running = false; S.phase = "setup"; renderSetup(); };
   $("#spd").onchange = e => { S.speed = e.target.value; };
   $("#bview").onchange = e => { S.boardView = e.target.value; renderRoom(); };
+  $("#vboard") && ($("#vboard").onchange = e => { S.viewBoard = e.target.value; renderRoom(); app.querySelector("#prospScroll").scrollTop = 0; });
   $("#q").oninput = e => { S.query = e.target.value; app.querySelector("#prospScroll").innerHTML = prospectsHtml(current(), isUser(current())); bindRows(); };
   // Position chips: tap to add a position; tap a highlighted one to filter by just that position
   // (or, if it's already the only one, to clear back to All)
@@ -1609,6 +1638,7 @@ function openMock(id) {
   Object.assign(S, { user: new Set(m.user), rounds: m.rounds, chart: CHARTS[m.chart] ? m.chart : S.chart, priority: m.priority || S.priority,
     futures: !!m.futures, picks: m.picks, trades: m.trades || [], future: restoreFuture(m.movedFuture), mockId: m.id,
     phase: "done", running: false, posFilter: new Set(), query: "", boardView: "mine" });
+  prepareViews();
   initOffers();
   showRoom();
 }

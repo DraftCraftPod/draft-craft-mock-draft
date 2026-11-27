@@ -66,6 +66,10 @@ Big boards (`live/boards.json`):
 - The page's Big board picker offers General, Dan's, JP's and Draft Craft Combined (average of the two ranks; a
   player only one of them ranked counts as just past the end of the other's list). After a board's ranked players
   it continues in General board order. Only boards that have loaded are offered.
+- The board picked at setup is the one the computer drafts from. In the draft room, the prospect list's board menu
+  shows any other board's ranks (the computer's rank sits under each number) without changing how the computer
+  drafts. Players only another board lists join the pool at the bottom of the computer's board so they can be drafted.
+  A pasted board can't be viewed alongside the others.
 
 Trade chart tab (next to Mock draft):
 
