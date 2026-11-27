@@ -71,6 +71,23 @@ Big boards (`live/boards.json`):
   drafts. Players only another board lists join the pool at the bottom of the computer's board so they can be drafted.
   A pasted board can't be viewed alongside the others.
 
+Big Board page (draftcraftpod.com/big-board):
+
+- The page lists Webflow CMS "Board Rankings" items (one per player per board, linked to a Prospects item).
+  `scripts/sync_webflow_boards.py` (same daily job, after `refresh_boards.py`) makes them match Dan's and JP's sheets:
+  it adds prospects the site doesn't have yet, corrects names, schools and positions, re-ranks, and removes players
+  who fell out of the top `BOARD_SIZE`. Grades and notes on rows that stay are kept. Archived items are left alone.
+- `BOARD_SIZE` at the top of the script is how many players each board shows: 32 early in the season, then 64 or
+  100 (the page lists up to 100).
+- The "+/-" column shows each player's move since the board last changed (▲3, ▼2, NEW, –), from the full sheet
+  ranking, and the header shows "Updated <date>" for the day the change was picked up. `live/site-boards.json` keeps
+  the ranking the site shows and the one before it.
+- It needs the repo secret `WEBFLOW_TOKEN`: a Webflow site API token (Site settings → Apps & integrations → API
+  access) with CMS read and write. Without it the step does nothing. The run summary lists new prospects and fixes.
+- The page's custom CSS and the script that fills in "Updated ..." are in `webflow/big-board-footer.html` (paste it
+  into the page's Before </body> code if it's ever changed).
+- Positions on the site use ER and DL where the sheets say EDGE and IDL.
+
 Trade chart tab (next to Mock draft):
 
 - Every 2027 pick in the current projected order with its value on the chosen chart; click a pick to add it to the trade.

@@ -1,0 +1,181 @@
+<style>
+/* Big Board page (/big-board) footer code. Source of truth: webflow/big-board-footer.html in the mock draft repo.
+   Columns: 1 rank, 2 pos, 3 player, 4 +/- (movement), 5 school, 6 grade. */
+/* BOARD LAYOUT */
+.board-header-row,
+.board-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  padding: 8px 14px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  gap: 12px !important;
+}
+
+.board-row {
+  border-bottom: 1px solid #2c2836 !important;
+}
+
+.board-row:hover {
+  background: #1e1b28 !important;
+}
+
+/* COLUMN WIDTHS */
+.board-header-row > *,
+.board-row > * {
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.board-header-text:nth-child(1),
+.board-rank { width: 40px !important; }
+
+.board-header-text:nth-child(2),
+.board-pos { width: 50px !important; }
+
+.board-header-text:nth-child(3),
+.board-player {
+  flex: 1 1 auto !important;
+  flex-shrink: 1 !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+}
+
+.board-header-text:nth-child(4),
+.board-move { width: 40px !important; text-align: center !important; }
+
+.board-header-text:nth-child(5),
+.board-school { width: 120px !important; }
+
+.board-header-text:nth-child(6),
+.board-grade { width: 50px !important; text-align: center !important; }
+
+/* BOARD ROW STYLES */
+.board-rank {
+  font-family: 'sporty-pro', sans-serif !important;
+  font-size: 20px !important;
+  color: #b8a8d4 !important;
+}
+
+.board-pos {
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  padding: 2px 5px !important;
+  background: #1a2a40 !important;
+  color: #5b9bd5 !important;
+  text-align: center !important;
+}
+
+.board-player {
+  font-family: 'sporty-pro', sans-serif !important;
+  font-size: 14px !important;
+  color: #f2eeea !important;
+  text-transform: uppercase !important;
+}
+
+/* +/- since the last update: up, down, new or same (data-move is set by the daily sync) */
+.board-move {
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  white-space: nowrap !important;
+  color: #5a5368 !important;
+}
+.board-move[data-move="up"] { color: #4fbf7f !important; }
+.board-move[data-move="down"] { color: #e0645c !important; }
+.board-move[data-move="new"] { color: #d4922a !important; font-size: 9px !important; letter-spacing: 0.1em !important; }
+
+.board-school {
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 12px !important;
+  color: #7a7290 !important;
+  text-align: left !important;
+}
+
+.board-grade {
+  font-family: 'sporty-pro', sans-serif !important;
+  font-size: 15px !important;
+  color: #b8a8d4 !important;
+  text-align: center !important;
+}
+
+.dan-board .board-rank {
+  color: #d4922a !important;
+}
+
+.jp-board .board-rank {
+  color: #b8a8d4 !important;
+}
+
+/* MOBILE — tablet/mobile landscape */
+@media screen and (max-width: 767px) {
+  .board-header-row,
+  .board-row {
+    padding: 6px 10px !important;
+    gap: 6px !important;
+  }
+  .board-header-text:nth-child(1),
+  .board-rank { width: 28px !important; }
+  .board-rank { font-size: 16px !important; }
+
+  .board-header-text:nth-child(2),
+  .board-pos { width: 34px !important; }
+  .board-pos { font-size: 9px !important; padding: 2px 4px !important; }
+
+  .board-player { font-size: 12px !important; }
+
+  .board-header-text:nth-child(4),
+  .board-move { width: 32px !important; }
+  .board-move { font-size: 10px !important; }
+
+  .board-header-text:nth-child(5),
+  .board-school { width: 64px !important; }
+  .board-school { font-size: 9px !important; }
+
+  .board-header-text:nth-child(6),
+  .board-grade { width: 38px !important; }
+  .board-grade { font-size: 13px !important; }
+
+  .board-header-text { font-size: 8px !important; }
+}
+
+/* MOBILE — mobile portrait */
+@media screen and (max-width: 479px) {
+  .board-header-row,
+  .board-row {
+    padding: 6px 8px !important;
+    gap: 4px !important;
+  }
+  .board-header-text:nth-child(1),
+  .board-rank { width: 22px !important; }
+  .board-rank { font-size: 14px !important; }
+
+  .board-header-text:nth-child(2),
+  .board-pos { width: 28px !important; }
+
+  .board-player { font-size: 11px !important; }
+
+  .board-header-text:nth-child(4),
+  .board-move { width: 28px !important; }
+
+  .board-header-text:nth-child(5),
+  .board-school { display: none !important; }
+  .board-school { display: none !important; }
+
+  .board-header-text:nth-child(6),
+  .board-grade { width: 32px !important; }
+  .board-grade { font-size: 12px !important; }
+}
+</style>
+<script>
+/* Each board's "Updated ..." line comes from its rows (data-updated, set by the daily sync). */
+document.querySelectorAll('.board-col-header').forEach(function (h) {
+  var col = h.parentElement, cell = col && col.querySelector('.board-rank[data-updated]'), label = h.querySelector('.text-block-59');
+  if (cell && label && cell.getAttribute('data-updated')) label.textContent = cell.getAttribute('data-updated');
+});
+</script>
