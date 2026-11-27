@@ -28,7 +28,7 @@ import urllib.request
 from pathlib import Path
 
 # How many players each board shows on the site: 32 early in the season, then 64 or 100 (the page lists up to 100).
-BOARD_SIZE = 32
+BOARD_SIZE = 64
 
 SITE_BOARDS = {  # boards.json key -> the Webflow Boards item it fills, and the name used in item titles
     "dan": {"board": "6a1e5a6974e5b73c5aca552d", "who": "Dan"},
